@@ -32,9 +32,9 @@ describe("server comms", function() {
     });
 
     function serverFake(url, data) {
-        // server.respondWith("POST", url, [200, {
-        //     "Content-Type": "application/json"
-        // }, JSON.stringify([data])]);
+        server.respondWith("POST", url, [200, {
+            "Content-Type": "application/json"
+        }, JSON.stringify([data])]);
     }
 
     it("can send", function() {
@@ -49,7 +49,7 @@ describe("server comms", function() {
         });
     });
 
-    it.only("can get register challenge", function() {
+    it("can get register challenge", function() {
         serverFake("/webauthn/register/challenge", challenge);
         return webauthnApp.getRegisterChallenge("apowers");
     });
