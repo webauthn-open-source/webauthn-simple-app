@@ -1,0 +1,40 @@
+{
+  "name": "webauthn-simple-app",
+  "version": "0.0.1",
+  "description": "webauthn-simple-app",
+  "main": "main.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "grunt default",
+    "docs": "jsdoc -c ./.jsdoc-conf.json",
+    "publish": "gh-pages --silent --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
+  },
+  "keywords": [
+    "webauthn",
+    "fido",
+    "fido2"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apowers313/webauthn-simple-app.git"
+  },
+  "author": "Adam Powers",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/apowers313/webauthn-simple-app/issues",
+    "email": "apowers@ato.ms"
+  },
+  "homepage": "https://github.com/apowers313/webauthn-simple-app#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "grunt": "^1.0.1",
+    "grunt-contrib-connect": "^1.0.2",
+    "grunt-saucelabs": "^9.0.0",
+    "mocha": "^3.2.0",
+    "gh-pages": "^0.12.0",
+    "ink-docstrap": "^1.3.0",
+    "jsdoc": "^3.4.3"
+  }
+}
