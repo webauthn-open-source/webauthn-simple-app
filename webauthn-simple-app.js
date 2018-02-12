@@ -82,17 +82,28 @@
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-type", "application/json; charset=utf-8");
             xhr.onload = function() {
-                var response = JSON.parse(xhr.responseText);
+                var response;
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch (err) {
+                    console.log ("Invalid JSON response from server");
+                    console.log (xhr.responseText);
+                    err.message = "Invalid JSON response from server";
+                    return reject(err);
+                }
                 if (xhr.readyState == 4 && xhr.status == "200") {
                     console.log("SUCCESS!:", response);
-                    resolve(response);
+                    return resolve({
+                        status: xhr.status,
+                        response: response
+                    });
                 } else {
                     console.log("SUCCESS?:", response);
-                    resolve(response);
+                    return resolve(response);
                 }
             };
             xhr.onerror = function() {
-                reject(new Error("post to URL failed:" + url));
+                return reject(new Error("post to URL failed:" + url));
             };
             xhr.send(json);
         });
