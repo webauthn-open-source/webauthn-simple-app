@@ -38,7 +38,6 @@ describe("server comms", function() {
     }
 
     it("can send", function() {
-        console.log ("foo");
         serverFake("/foo", {
             id: 12,
             comment: "Hey there"
@@ -60,6 +59,7 @@ describe("server comms", function() {
     it("can change endpoints");
     it("can change endpoint methods");
     it("can register a callback to modify the messages to / from the server");
+    it("catches error on missing endpoint");
 });
 
 describe("events", function() {
