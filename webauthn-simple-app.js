@@ -66,7 +66,7 @@
                 return self.webauthnCreate(serverMsg.response);
             })
             .then(function(newCred) {
-                console.log ("newCred", newCred);
+                console.log("newCred", newCred);
                 // send response
                 return self.sendRegisterResponse(newCred);
             });
@@ -86,22 +86,28 @@
     };
 
     webauthnApp.prototype.webauthnCreate = function(serverResponse) {
-        var options = {};
-        options.publicKey = {};
-        options.publicKey.rp = {};
-        options.publicKey.rp.name = serverResponse.appName || this.appName;
-        options.publicKey.rp.icon = serverResponse.icon || this.icon;
-        options.publicKey.user = {};
-        options.publicKey.user.id = str2ab(serverResponse.userId || serverResponse.username || this.username);
-        options.publicKey.user.name = serverResponse.username || this.username;
-        options.publicKey.user.displayName = serverResponse.displayName || serverResponse.username || this.username;
-        options.publicKey.user.icon = serverResponse.icon || this.icon;
-        options.publicKey.challenge = decodeString(serverResponse.challenge, this.binaryEncoding);
-        options.publicKey.pubKeyCredParams = []
-        options.publicKey.pubKeyCredParams[0] = {};
-        options.publicKey.pubKeyCredParams[0].type = "public-key";
-        options.publicKey.pubKeyCredParams[0].alg = serverResponse.alg || this.alg;
-        options.publicKey.timeout = serverResponse.timeout || this.timeout;
+        console.log ("server response", serverResponse);
+        var options = {
+            publicKey: {
+                rp: {
+                    id: serverResponse.serverDomain,
+                    name: serverResponse.serverName || this.appName,
+                    icon: serverResponse.serverIcon || this.icon
+                },
+                user: {
+                    id: str2ab(serverResponse.userId || serverResponse.username || this.username),
+                    name: serverResponse.username || this.username,
+                    displayName: serverResponse.displayName || serverResponse.username || this.username,
+                    icon: serverResponse.userIcon
+                },
+                challenge: decodeString(serverResponse.challenge, serverResponse.binaryEncoding || this.binaryEncoding),
+                pubKeyCredParams: [{
+                    type: "public-key",
+                    alg: serverResponse.alg || this.alg
+                }],
+                timeout: serverResponse.timeout || this.timeout
+            }
+        };
         // TODO: other options (excludeCredentials, extensions, algorithmList instead of alg, etc)\
 
         console.log("credentials.create options:", options);
@@ -122,15 +128,18 @@
     };
 
     webauthnApp.prototype.sendRegisterResponse = function(pkCred) {
-        var msg = {}
-        msg.binaryEncoding = "hex";
-        msg.username = this.username;
-        msg.id = encodeString(pkCred.rawId);
-        msg.response = {};
-        msg.response.attestationObject = encodeString(pkCred.response.attestationObject, msg.binaryEncoding);
-        msg.response.clientDataJSON = encodeString(pkCred.response.clientDataJSON, msg.binaryEncoding);
+        let encoding = "base64";
+        var msg = {
+            binaryEncoding: encoding,
+            username: this.username,
+            id: encodeBuffer(pkCred.rawId, encoding),
+            response: {
+                attestationObject: encodeBuffer(pkCred.response.attestationObject, encoding),
+                clientDataJSON: encodeBuffer(pkCred.response.clientDataJSON, encoding)
+            }
+        };
 
-        console.log ("msg", msg);
+        console.log("msg", msg);
 
         return this.send(this.registerResponseMethod,
             this.registerResponseEndpoint,
@@ -200,12 +209,29 @@
             })).buffer;
         }
 
+        function isBase64(str) {
+            return !!str.match(/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$/g);
+        }
+
+        function base64_2ab(str) {
+            var u8a = Uint8Array.from(atob(str), c => c.charCodeAt(0));
+            printHex ("base64_2ab", u8a.buffer);
+            return u8a.buffer;
+        }
+
+        console.log ("str", str);
+        console.log ("encoding", encoding);
+        console.log ("isHex", isHex(str));
+        console.log ("isBase64", isBase64(str));
         if (encoding === "hex" || isHex(str)) return hex2ab(str);
-        throw new TypeError ("format of string unknown: " + str);
+        if (encoding === "base64" || isBase64(str)) return base64_2ab(str);
+        throw new TypeError("format of string unknown: " + str);
     }
 
-    function encodeString(ab, encoding) {
-        return Array.prototype.map.call(new Uint8Array(ab), x => ('00' + x.toString(16)).slice(-2)).join('');
+    function encodeBuffer(ab, encoding) {
+        if (encoding === "hex") return Array.prototype.map.call(new Uint8Array(ab), x => ('00' + x.toString(16)).slice(-2)).join('');
+        if (encoding === "base64") return btoa(String.fromCharCode.apply(null, new Uint8Array(ab)));
+        throw new TypeError ("unknown encoding in encodeBuffer: " + encoding);
     }
 
     function printHex(msg, buf) {
