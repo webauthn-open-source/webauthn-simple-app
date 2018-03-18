@@ -10,18 +10,47 @@
     const cose_crv_x = -2;
     const cose_crv_y = -3;
 
-    function webauthnApp(config) {
-        // check for secure context
-        if (!window.isSecureContext) {
-            console.log("webauthnApp: not in a secure context, application not loading");
-            return null;
+    // check for secure context
+    var eNotSupported;
+    if (!window.isSecureContext) {
+        eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "This web page was not loaded in a secure context (https). Please try loading the page again using https." });
+        document.dispatchEvent(eNotSupported);
+        console.log("webAuthnApp: not in a secure context, application not loading");
+        return null;
+    }
+
+    // check for navigator.credentials.create
+    if (typeof navigator.credentials !== "object" || typeof navigator.credentials.create !== "function") {
+        eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>" });
+        document.dispatchEvent(eNotSupported);
+        console.log("webAuthnApp: WebAuthn interface not supported, application not loading");
+        return null;
+    }
+
+    // TODO:
+    // ClientPreference class
+    // ServerMsg class
+    // ServerResponse class
+
+    function WebAuthnResult(opt) {
+        var success = true;
+        var msg = opt;
+        var err = null;
+
+        if (opt instanceof Error) {
+            success = false;
+            msg = opt.message;
+            err = opt;
         }
 
-        // check for navigator.credentials.create
-        if (typeof navigator.credentials.create !== "function") {
-            console.log("webauthnApp: WebAuthn interface not supported, application not loading");
-            return null;
-        }
+        return {
+            success: success,
+            msg: msg,
+            err: err
+        };
+    }
+
+    function webAuthnApp(config) {
 
         // configure or defaults
         config = config || {};
@@ -46,47 +75,101 @@
         this.debug = function() {};
     }
 
-    webauthnApp.prototype.debug = function() {
+    webAuthnApp.prototype.debug = function() {
         this.debug = console.log;
     };
 
-    webauthnApp.prototype.register = function() {
+    webAuthnApp.prototype.register = function() {
         var self = this;
         // get challenge
         return this.getRegisterChallenge()
             .then(function(serverMsg) {
+                console.log("serverMsg", serverMsg);
                 if (serverMsg.status != 200) {
-                    throw new Error("Server responded with status: " + serverMsg.status);
+                    throw new Error("Server responded with status: " + serverMsg.errorMsg);
                 }
                 if (!serverMsg.response || !serverMsg.response.challenge) {
                     throw new Error("Malformatted server response: " + serverMsg);
                 }
 
                 // call webauthn
-                return self.webauthnCreate(serverMsg.response);
+                return self.webAuthnCreate(serverMsg.response);
             })
             .then(function(newCred) {
                 console.log("newCred", newCred);
+                var eRegDone = new CustomEvent("webauthn-user-presence-done");
+                document.dispatchEvent(eRegDone);
+
                 // send response
                 return self.sendRegisterResponse(newCred);
+            })
+            .then(function(msg) {
+                console.log("RESPONSE:", msg);
+
+                var result = new WebAuthnResult("Registration successful!");
+                console.log("result");
+                var eRegComplete = new CustomEvent("webauthn-register-complete", { detail: result });
+                document.dispatchEvent(eRegComplete);
+
+                // console.log("msg.status !== 200", msg.status !== 200);
+                // console.log("!msg.response.success", !msg.response.success);
+                if (msg.status != 200 || !msg.response.success) {
+                    throw new Error("registration failed: " + msg.errorMsg);
+                }
+
+                return msg;
+            })
+            .catch(function(err) {
+                console.log("REGISTER FAILED!\n", err);
+                var eRegComplete = new CustomEvent("webauthn-register-complete", { detail: new WebAuthnResult(err) });
+                document.dispatchEvent(eRegComplete);
             });
     };
 
-    webauthnApp.prototype.login = function() {
+    webAuthnApp.prototype.login = function() {
+        var self = this;
         // get challenge
         return this.getLoginChallenge()
-            .then(function() {
+            .then(function(serverMsg) {
+                console.log("serverMsg", serverMsg);
+                if (serverMsg.status != 200) {
+                    throw new Error("Server responded with status: " + serverMsg.errorMsg);
+                }
+                if (!serverMsg.response || !serverMsg.response.challenge) {
+                    throw new Error("Malformatted server response: " + serverMsg);
+                }
+
                 // call webauthn
-                return this.webauthnGet();
+                return self.webAuthnGet(serverMsg.response);
             })
-            .then(function() {
+            .then(function(assn) {
+                var eRegDone = new CustomEvent("webauthn-user-presence-done");
+                document.dispatchEvent(eRegDone);
+
                 // send response
-                return this.sendLoginResponse();
+                return self.sendLoginResponse(assn);
+            })
+            .then(function(msg) {
+                console.log("RESPONSE:", msg);
+
+                var eLoginComplete = new CustomEvent("webauthn-login-complete", { detail: new WebAuthnResult("Login successful!") });
+                document.dispatchEvent(eLoginComplete);
+
+                if (msg.status != 200 || !msg.response.success) {
+                    throw new Error("registration failed: " + msg.errorMsg);
+                }
+
+                return msg;
+            })
+            .catch(function(err) {
+                console.log("LOGIN FAILED!\n", err);
+                var eLoginComplete = new CustomEvent("webauthn-login-complete", { detail: new WebAuthnResult(err) });
+                document.dispatchEvent(eLoginComplete);
             });
     };
 
-    webauthnApp.prototype.webauthnCreate = function(serverResponse) {
-        console.log ("server response", serverResponse);
+    webAuthnApp.prototype.webAuthnCreate = function(serverResponse) {
+        console.log("server response", serverResponse);
         var options = {
             publicKey: {
                 rp: {
@@ -105,7 +188,11 @@
                     type: "public-key",
                     alg: serverResponse.alg || this.alg
                 }],
-                timeout: serverResponse.timeout || this.timeout
+                timeout: serverResponse.timeout || this.timeout,
+                attestation: serverResponse.attestation || this.attestation || "indirect"
+                // excludeCredentials
+                // authenticatorSelection
+                // extensions
             }
         };
         // TODO: other options (excludeCredentials, extensions, algorithmList instead of alg, etc)\
@@ -114,21 +201,58 @@
         printHex("challenge", options.publicKey.challenge);
         printHex("user.id", options.publicKey.user.id);
 
+        var eRegStart = new CustomEvent("webauthn-user-presence-start");
+        document.dispatchEvent(eRegStart);
+
         return navigator.credentials.create(options);
     };
-    webauthnApp.prototype.webauthnGet = function() {};
-    webauthnApp.prototype.getRegisterChallenge = function() {
-        var sendData = {
-            user: this.username
+
+    webAuthnApp.prototype.webAuthnGet = function(serverResponse) {
+        var idList = serverResponse.credIdList;
+        console.log("idList before", idList);
+        idList = idList.map((id) => {
+            return {
+                type: "public-key",
+                id: decodeString(id, serverResponse.binaryEncoding || this.binaryEncoding)
+            };
+        });
+
+        console.log("ID LIST", idList);
+        var options = {
+            publicKey: {
+                challenge: decodeString(serverResponse.challenge, serverResponse.binaryEncoding || this.binaryEncoding),
+                timeout: serverResponse.timeout || this.timeout,
+                // rpId
+                allowCredentials: idList
+                // userVerfification
+                // extensions
+            }
         };
 
-        return this.send(this.registerChallengeMethod,
-            this.registerChallengeEndpoint,
-            sendData);
+        console.log("GET OPTIONS:", options);
+
+        var eRegStart = new CustomEvent("webauthn-user-presence-start");
+        document.dispatchEvent(eRegStart);
+
+        return navigator.credentials.get(options);
     };
 
-    webauthnApp.prototype.sendRegisterResponse = function(pkCred) {
+    webAuthnApp.prototype.getRegisterChallenge = function() {
+        var sendData = {
+            username: this.username
+        };
+
+        return this.send(
+            this.registerChallengeMethod,
+            this.registerChallengeEndpoint,
+            sendData
+        );
+    };
+
+    webAuthnApp.prototype.sendRegisterResponse = function(pkCred) {
         let encoding = "base64";
+        printHex("attestationObject", pkCred.response.attestationObject);
+        printHex("clientDataJSON", pkCred.response.clientDataJSON);
         var msg = {
             binaryEncoding: encoding,
             username: this.username,
@@ -141,15 +265,51 @@
 
         console.log("msg", msg);
 
-        return this.send(this.registerResponseMethod,
+        return this.send(
+            this.registerResponseMethod,
             this.registerResponseEndpoint,
-            msg);
+            msg
+        );
     };
 
-    webauthnApp.prototype.getLoginChallenge = function() {};
-    webauthnApp.prototype.sendLoginResponse = function() {};
+    webAuthnApp.prototype.getLoginChallenge = function() {
+        var sendData = {
+            username: this.username
+        };
 
-    webauthnApp.prototype.send = function(method, url, data) {
+        return this.send(
+            this.loginChallengeMethod,
+            this.loginChallengeEndpoint,
+            sendData
+        );
+    };
+
+    webAuthnApp.prototype.sendLoginResponse = function(assn) {
+        console.log("ASSERTION:", assn);
+        var encoding = "base64";
+
+        var msg = {
+            binaryEncoding: encoding,
+            username: this.username,
+            id: encodeBuffer(assn.rawId, encoding),
+            response: {
+                clientDataJSON: encodeBuffer(assn.response.clientDataJSON, encoding),
+                authenticatorData: encodeBuffer(assn.response.authenticatorData, encoding),
+                signature: encodeBuffer(assn.response.signature, encoding),
+                userHandle: encodeBuffer(assn.response.userHandle, encoding)
+            }
+        };
+
+        console.log("msg", msg);
+
+        return this.send(
+            this.loginResponseMethod,
+            this.loginResponseEndpoint,
+            msg
+        );
+    };
+
+    webAuthnApp.prototype.send = function(method, url, data) {
         // TODO: maybe some day upgrade to fetch(); have to change the mock in the tests too
         return new Promise(function(resolve, reject) {
             var json = JSON.stringify(data);
@@ -173,9 +333,9 @@
                         status: xhr.status,
                         response: response
                     });
-                } else {
-                    return resolve(response);
                 }
+
+                return resolve(response);
             };
             xhr.onerror = function() {
                 return reject(new Error("post to URL failed:" + url));
@@ -214,15 +374,11 @@
         }
 
         function base64_2ab(str) {
-            var u8a = Uint8Array.from(atob(str), c => c.charCodeAt(0));
-            printHex ("base64_2ab", u8a.buffer);
+            var u8a = Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
+            printHex("base64_2ab", u8a.buffer);
             return u8a.buffer;
         }
 
-        console.log ("str", str);
-        console.log ("encoding", encoding);
-        console.log ("isHex", isHex(str));
-        console.log ("isBase64", isBase64(str));
         if (encoding === "hex" || isHex(str)) return hex2ab(str);
         if (encoding === "base64" || isBase64(str)) return base64_2ab(str);
         throw new TypeError("format of string unknown: " + str);
@@ -231,7 +387,7 @@
     function encodeBuffer(ab, encoding) {
         if (encoding === "hex") return Array.prototype.map.call(new Uint8Array(ab), x => ('00' + x.toString(16)).slice(-2)).join('');
         if (encoding === "base64") return btoa(String.fromCharCode.apply(null, new Uint8Array(ab)));
-        throw new TypeError ("unknown encoding in encodeBuffer: " + encoding);
+        throw new TypeError("unknown encoding in encodeBuffer: " + encoding);
     }
 
     function printHex(msg, buf) {
@@ -301,27 +457,42 @@
         // get configuration
         var config = getWebAuthnConfigurationFromForm();
 
-        // get registration challenge
+        // get challenge from server, create credential, return results to server
         new WebAuthnApp(config).register()
-            .then(() => {
+            .then((resp) => {
+                console.log("RESPONSE:", resp);
                 console.log("registration done");
             })
-            .catch((err) => {
-                console.log("Registration error:", err);
-            })
+        // .catch((err) => {
+        //     console.log("Registration error:", err);
+        // });
 
         return false;
     }
 
     function webAuthnLoginOnSubmit() {
         console.log("webAuthnLoginOnSubmit");
+
+        // get configuration
+        var config = getWebAuthnConfigurationFromForm();
+
+        // get challenge from server, get credential, return results to server
+        new WebAuthnApp(config).login()
+            .then((resp) => {
+                console.log("RESPONSE:", resp);
+                console.log("login done");
+            })
+        // .catch((err) => {
+        //     console.log("Registration error:", err);
+        // });
+
         return false;
     }
 
     // global class
-    window.WebAuthnApp = webauthnApp;
+    window.WebAuthnApp = webAuthnApp;
 
     // static methods
     window.WebAuthnApp.webAuthnRegisterOnSubmit = webAuthnRegisterOnSubmit;
     window.WebAuthnApp.webAuthnLoginOnSubmit = webAuthnLoginOnSubmit;
-})();
+}());
