@@ -1,3 +1,5 @@
+/* eslint-disable strict */
+
 (function() {
     // Useful constants for working with COSE key objects
     const cose_kty = 1;
@@ -10,22 +12,39 @@
     const cose_crv_x = -2;
     const cose_crv_y = -3;
 
-    // check for secure context
-    var eNotSupported;
-    if (!window.isSecureContext) {
-        eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "This web page was not loaded in a secure context (https). Please try loading the page again using https." });
-        document.dispatchEvent(eNotSupported);
-        console.log("webAuthnApp: not in a secure context, application not loading");
-        return null;
-    }
+    window.addEventListener("load", function(event) {
+        console.log("I'm loaded.");
+        // check for secure context
+        var eNotSupported;
+        if (!window.isSecureContext) {
+            eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "This web page was not loaded in a secure context (https). Please try loading the page again using https or make sure you are using a browser with secure context support." });
+            document.dispatchEvent(eNotSupported);
+            console.log("webAuthnApp: not in a secure context, application not loading");
+            return null;
+        }
 
-    // check for navigator.credentials.create
-    if (typeof navigator.credentials !== "object" || typeof navigator.credentials.create !== "function") {
-        eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>" });
-        document.dispatchEvent(eNotSupported);
-        console.log("webAuthnApp: WebAuthn interface not supported, application not loading");
-        return null;
-    }
+        // check for navigator.credentials.create
+        if (typeof navigator.credentials !== "object" || typeof navigator.credentials.create !== "function") {
+            eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>" });
+            document.dispatchEvent(eNotSupported);
+            console.log("webAuthnApp: WebAuthn interface not supported, application not loading");
+            return null;
+        }
+
+        // Chrome 65 & 66 have navigator.credentials.create but it doesn't actually work unless you launch with a flag
+        function getChromeVersion() {
+            var raw = navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./);
+            return raw ? parseInt(raw[2], 10) : false;
+        }
+
+        var chromeVersion = getChromeVersion();
+        if (chromeVersion && getChromeVersion() < 67) {
+            eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>" });
+            document.dispatchEvent(eNotSupported);
+            console.log("webAuthnApp: WebAuthn interface not supported, Chrome must be version 67 or higher");
+            return null;
+        }
+    });
 
     // TODO:
     // ClientPreference class
@@ -50,7 +69,7 @@
         };
     }
 
-    function webAuthnApp(config) {
+    function WebAuthnApp(config) {
 
         // configure or defaults
         config = config || {};
@@ -63,10 +82,6 @@
         this.loginChallengeMethod = config.loginChallengeMethod || "POST";
         this.loginResponseMethod = config.loginResponseMethod || "POST";
         this.timeout = config.timeout || 60000; // one minute
-        this.registerSuccessRedirect = config.registerSuccessRedirect || null;
-        this.registerFailureRedirect = config.registerFailureRedirect || null;
-        this.loginSuccessRedirect = config.loginSuccessRedirect || null;
-        this.loginFailureRedirect = config.loginFailureRedirect || null;
         this.alg = config.alg || cose_alg_ECDSA_w_SHA256;
         this.binaryEncoding = config.binaryEncoding;
         // TODO: relying party name
@@ -75,11 +90,11 @@
         this.debug = function() {};
     }
 
-    webAuthnApp.prototype.debug = function() {
+    WebAuthnApp.prototype.debug = function() {
         this.debug = console.log;
     };
 
-    webAuthnApp.prototype.register = function() {
+    WebAuthnApp.prototype.register = function() {
         var self = this;
         // get challenge
         return this.getRegisterChallenge()
@@ -106,7 +121,7 @@
             .then(function(msg) {
                 console.log("RESPONSE:", msg);
 
-                var result = new WebAuthnResult("Registration successful!");
+                var result = new WebAuthnResult("You are now registered.");
                 console.log("result");
                 var eRegComplete = new CustomEvent("webauthn-register-complete", { detail: result });
                 document.dispatchEvent(eRegComplete);
@@ -126,7 +141,7 @@
             });
     };
 
-    webAuthnApp.prototype.login = function() {
+    WebAuthnApp.prototype.login = function() {
         var self = this;
         // get challenge
         return this.getLoginChallenge()
@@ -152,7 +167,7 @@
             .then(function(msg) {
                 console.log("RESPONSE:", msg);
 
-                var eLoginComplete = new CustomEvent("webauthn-login-complete", { detail: new WebAuthnResult("Login successful!") });
+                var eLoginComplete = new CustomEvent("webauthn-login-complete", { detail: new WebAuthnResult("You are now logged in.") });
                 document.dispatchEvent(eLoginComplete);
 
                 if (msg.status != 200 || !msg.response.success) {
@@ -168,7 +183,7 @@
             });
     };
 
-    webAuthnApp.prototype.webAuthnCreate = function(serverResponse) {
+    WebAuthnApp.prototype.webAuthnCreate = function(serverResponse) {
         console.log("server response", serverResponse);
         var options = {
             publicKey: {
@@ -207,15 +222,13 @@
         return navigator.credentials.create(options);
     };
 
-    webAuthnApp.prototype.webAuthnGet = function(serverResponse) {
+    WebAuthnApp.prototype.webAuthnGet = function(serverResponse) {
         var idList = serverResponse.credIdList;
         console.log("idList before", idList);
-        idList = idList.map((id) => {
-            return {
-                type: "public-key",
-                id: decodeString(id, serverResponse.binaryEncoding || this.binaryEncoding)
-            };
-        });
+        idList = idList.map((id) => ({
+            type: "public-key",
+            id: decodeString(id, serverResponse.binaryEncoding || this.binaryEncoding)
+        }));
 
         console.log("ID LIST", idList);
         var options = {
@@ -237,7 +250,7 @@
         return navigator.credentials.get(options);
     };
 
-    webAuthnApp.prototype.getRegisterChallenge = function() {
+    WebAuthnApp.prototype.getRegisterChallenge = function() {
         var sendData = {
             username: this.username
         };
@@ -249,7 +262,7 @@
         );
     };
 
-    webAuthnApp.prototype.sendRegisterResponse = function(pkCred) {
+    WebAuthnApp.prototype.sendRegisterResponse = function(pkCred) {
         let encoding = "base64";
         printHex("attestationObject", pkCred.response.attestationObject);
         printHex("clientDataJSON", pkCred.response.clientDataJSON);
@@ -272,7 +285,7 @@
         );
     };
 
-    webAuthnApp.prototype.getLoginChallenge = function() {
+    WebAuthnApp.prototype.getLoginChallenge = function() {
         var sendData = {
             username: this.username
         };
@@ -284,7 +297,7 @@
         );
     };
 
-    webAuthnApp.prototype.sendLoginResponse = function(assn) {
+    WebAuthnApp.prototype.sendLoginResponse = function(assn) {
         console.log("ASSERTION:", assn);
         var encoding = "base64";
 
@@ -309,7 +322,7 @@
         );
     };
 
-    webAuthnApp.prototype.send = function(method, url, data) {
+    WebAuthnApp.prototype.send = function(method, url, data) {
         // TODO: maybe some day upgrade to fetch(); have to change the mock in the tests too
         return new Promise(function(resolve, reject) {
             var json = JSON.stringify(data);
@@ -365,7 +378,7 @@
 
         function hex2ab(str) {
             return new Uint8Array(str.match(/[\da-f]{2}/gi).map(function(h) {
-                return parseInt(h, 16)
+                return parseInt(h, 16);
             })).buffer;
         }
 
@@ -385,7 +398,7 @@
     }
 
     function encodeBuffer(ab, encoding) {
-        if (encoding === "hex") return Array.prototype.map.call(new Uint8Array(ab), x => ('00' + x.toString(16)).slice(-2)).join('');
+        if (encoding === "hex") return Array.prototype.map.call(new Uint8Array(ab), (x) => ("00" + x.toString(16)).slice(-2)).join("");
         if (encoding === "base64") return btoa(String.fromCharCode.apply(null, new Uint8Array(ab)));
         throw new TypeError("unknown encoding in encodeBuffer: " + encoding);
     }
@@ -426,73 +439,6 @@
         }
     }
 
-    function copyObject(obj) {
-        return JSON.parse(JSON.stringify(obj));
-    }
-
-    function getWebAuthnConfigurationFromForm() {
-        var config = {};
-
-        function getValue(id) {
-            var e = document.getElementById(id);
-            if (!e) return;
-            if (e.value === "") return;
-            return e.value;
-        }
-
-        config.username = getValue("username");
-        config.timeout = getValue("timeout");
-        config.appName = getValue("appName");
-        config.registerSuccessRedirect = getValue("registerSuccessRedirect");
-        config.registerFailureRedirect = getValue("registerFailureRedirect");
-        console.log("CONFIG:", config);
-
-        return config;
-    }
-
-    // static functions
-    function webAuthnRegisterOnSubmit() {
-        console.log("webAuthnRegisterOnSubmit");
-
-        // get configuration
-        var config = getWebAuthnConfigurationFromForm();
-
-        // get challenge from server, create credential, return results to server
-        new WebAuthnApp(config).register()
-            .then((resp) => {
-                console.log("RESPONSE:", resp);
-                console.log("registration done");
-            })
-        // .catch((err) => {
-        //     console.log("Registration error:", err);
-        // });
-
-        return false;
-    }
-
-    function webAuthnLoginOnSubmit() {
-        console.log("webAuthnLoginOnSubmit");
-
-        // get configuration
-        var config = getWebAuthnConfigurationFromForm();
-
-        // get challenge from server, get credential, return results to server
-        new WebAuthnApp(config).login()
-            .then((resp) => {
-                console.log("RESPONSE:", resp);
-                console.log("login done");
-            })
-        // .catch((err) => {
-        //     console.log("Registration error:", err);
-        // });
-
-        return false;
-    }
-
     // global class
-    window.WebAuthnApp = webAuthnApp;
-
-    // static methods
-    window.WebAuthnApp.webAuthnRegisterOnSubmit = webAuthnRegisterOnSubmit;
-    window.WebAuthnApp.webAuthnLoginOnSubmit = webAuthnLoginOnSubmit;
+    window.WebAuthnApp = WebAuthnApp;
 }());
