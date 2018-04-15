@@ -1,16 +1,455 @@
 /* eslint-disable strict */
 
+// WebAuthnClientMsg, WebAuthnServerMsg, WebAuthnOptions
+(function() {
+    var exp;
+
+    // node.js exports
+    if (typeof module === "object" && module.exports) {
+        exp = module.exports;
+    }
+
+    // browser exports
+    try {
+        if (window) exp = window;
+    } catch (err) {
+        // ignore
+    }
+
+    function copyProp(src, dst, prop) {
+        if (src[prop] !== undefined) dst[prop] = src[prop];
+    }
+
+    function copyPropList(src, dst, propList) {
+        var i;
+        for (i = 0; i < propList.length; i++) {
+            copyProp(src, dst, propList[i]);
+        }
+    }
+
+    function checkType(obj, prop, type) {
+        switch (typeof type) {
+            case "string":
+                if (typeof obj[prop] !== type) {
+                    throw new Error("expected '" + prop + "' to be '" + type + "', got: " + typeof obj[prop]);
+                }
+                break;
+
+            case "function":
+                if (!(obj[prop] instanceof type)) {
+                    throw new Error("expected '" + prop + "' to be '" + type.name + "', got: " + obj[prop]);
+                }
+                break;
+
+            default:
+                throw new Error("internal error: checkType received invalid type");
+        }
+    }
+
+    function checkOptionalType(obj, prop, type) {
+        if (obj === undefined || obj[prop] === undefined) return;
+
+        checkType(obj, prop, type);
+    }
+
+    function checkFormat(obj, prop, format) {
+        switch (format) {
+            case "non-empty-string":
+                checkType(obj, prop, "string");
+                checkTrue(
+                    obj[prop].length > 0,
+                    "expected '" + prop + "' to be non-empty string"
+                );
+                break;
+            case "base64url":
+                checkType(obj, prop, "string");
+                checkTrue(
+                    isBase64Url(obj[prop]),
+                    "expected '" + prop + "' to be base64url format, got: " + obj[prop]
+                );
+                break;
+            case "positive-integer":
+                checkType(obj, prop, "number");
+                var n = obj[prop];
+                checkTrue(
+                    n >>> 0 === parseFloat(n),
+                    "expected '" + prop + "' to be positive integer"
+                );
+                break;
+            case "nullable-string":
+                var t = typeof obj[prop];
+                checkTrue(
+                    ["null", "string", "undefined"].includes(t),
+                    "expected '" + prop + "' to be null or string"
+                );
+                break;
+            default:
+                throw new Error("internal error: unknown format");
+        }
+    }
+
+    function checkOptionalFormat(obj, prop, format) {
+        if (obj === undefined || obj[prop] === undefined) return;
+
+        checkFormat(obj, prop, format);
+    }
+
+    function isBase64Url(str) {
+        return !!str.match(/^[A-Za-z0-9\-_]+={0,2}$/);
+    }
+
+    function checkTrue(truthy, msg) {
+        if (!truthy) {
+            throw Error(msg);
+        }
+    }
+
+    function checkUserVerification(val) {
+        checkTrue(
+            ["required", "preferred", "discouraged"].includes(val),
+            "userVerification must be 'required', 'preferred' or 'discouraged'"
+        );
+    }
+
+    function checkAuthenticatorSelection(obj) {
+        checkOptionalType(obj, "authenticatorSelection", Object);
+        if (obj.authenticatorSelection && obj.authenticatorSelection.authenticatorAttachment) {
+            checkTrue(
+                ["platform", "cross-platform"].includes(obj.authenticatorSelection.authenticatorAttachment),
+                "authenticatorAttachment must be either 'platform' or 'cross-platform'"
+            );
+        }
+        if (obj.authenticatorSelection && obj.authenticatorSelection.userVerification) {
+            checkUserVerification(obj.authenticatorSelection.userVerification);
+
+        }
+        checkOptionalType(obj.authenticatorSelection, "requireResidentKey", "boolean");
+    }
+
+    function checkCredentialDescriptorList(arr) {
+        arr.forEach(function(cred) {
+            checkFormat(cred, "id", "base64url");
+            checkTrue(cred.type === "public-key", "credential type must be 'public-key'");
+            checkOptionalType(cred, "transports", Array);
+            if (cred.transports) cred.transports.forEach(function(trans) {
+                checkTrue(
+                    ["usb", "nfc", "ble"].includes(trans),
+                    "expected transport to be 'usb', 'nfc', or 'ble', got: " + trans
+                );
+            });
+        });
+    }
+
+    function checkAttestation(obj) {
+        if (obj.attestation) checkTrue(
+            ["direct", "none", "indirect"].includes(obj.attestation),
+            "expected attestation to be 'direct', 'none', or 'indirect'"
+        );
+    }
+
+    // virtual msg class, serves as base for other messages
+    class Msg {
+        constructor() {
+            this.propList = [];
+        }
+
+        toObject() {
+            var obj = {};
+            copyPropList(this, obj, this.propList);
+            return obj;
+        }
+
+        toString() {
+            return JSON.stringify(this.toObject());
+        }
+
+        toPrettyString() {
+            return JSON.stringify(this.toObject(), undefined, 4);
+        }
+
+        validate() {
+            throw Error("not implemented");
+        }
+
+        static from(json) {
+            var obj;
+            if (typeof json === "string") {
+                try {
+                    obj = JSON.parse(json);
+                } catch (err) {
+                    throw new TypeError("error parsing JSON string");
+                }
+            }
+
+            if (typeof json === "object") {
+                obj = json;
+            }
+
+            if (typeof obj !== "object") {
+                throw new TypeError("couldn't coerce 'json' argument to an object");
+            }
+
+            var msg = new this.prototype.constructor();
+            copyPropList(obj, msg, msg.propList);
+
+            if (obj.preferences) {
+                msg.preferences = WebAuthnOptions.from(obj.preferences);
+            }
+
+            return msg;
+        }
+    }
+
+    class ServerResponse extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "status",
+                "errorMessage"
+            ];
+        }
+
+        validate() {
+            switch (this.status) {
+                case "ok":
+                    if (this.errorMessage === undefined) {
+                        this.errorMessage = "";
+                    }
+
+                    // if status is "ok", errorMessage must be ""
+                    checkTrue(this.errorMessage === "", "errorMessage must be empty string when status is 'ok'");
+                    break;
+
+                case "failed":
+                    // if status is "failed", errorMessage must be non-zero-length string
+                    checkType(this, "errorMessage", "string");
+                    checkTrue(
+                        this.errorMessage.length > 0,
+                        "errorMessage must be non-zero length when status is 'failed'"
+                    );
+                    break;
+
+                // status is string, either "ok" or "failed"
+                default:
+                    throw new Error("'expected 'status' to be 'string', got: " + this.status);
+            }
+        }
+    }
+
+    class CreationOptionsRequest extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "username",
+                "displayName",
+                "authenticatorSelection",
+                "attestation"
+            ];
+        }
+
+        validate() {
+            checkFormat(this, "username", "non-empty-string");
+            checkFormat(this, "displayName", "non-empty-string");
+            checkAuthenticatorSelection(this);
+            checkAttestation(this);
+        }
+    }
+
+    class CreationOptions extends ServerResponse {
+        constructor() {
+            super();
+
+            this.propList = this.propList.concat([
+                "rp",
+                "user",
+                "challenge",
+                "pubKeyCredParams",
+                "timeout",
+                "excludeCredentials",
+                "authenticatorSelection",
+                "attestation",
+                "extensions"
+            ]);
+        }
+
+        validate() {
+            super.validate();
+
+            // check types
+            checkType(this, "rp", Object);
+            checkFormat(this.rp, "name", "non-empty-string");
+            checkOptionalFormat(this.rp, "id", "non-empty-string");
+            checkOptionalFormat(this.rp, "icon", "non-empty-string");
+
+            checkType(this, "user", Object);
+            checkFormat(this.user, "name", "non-empty-string");
+            checkFormat(this.user, "id", "base64url");
+            checkFormat(this.user, "displayName", "non-empty-string");
+            checkOptionalFormat(this.user, "icon", "non-empty-string");
+
+            checkFormat(this, "challenge", "base64url");
+            checkType(this, "pubKeyCredParams", Array);
+            this.pubKeyCredParams.forEach(function(cred) {
+                checkType(cred, "alg", "number");
+                checkTrue(cred.type === "public-key", "credential type must be 'public-key'");
+            });
+            checkOptionalFormat(this, "timeout", "positive-integer");
+            checkOptionalType(this, "excludeCredentials", Array);
+
+            if (this.excludeCredentials) checkCredentialDescriptorList(this.excludeCredentials);
+
+            checkAuthenticatorSelection(this);
+            checkAttestation(this);
+
+            checkOptionalType(this, "extensions", Object);
+        }
+    }
+
+    class CredentialAttestation extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "rawId",
+                "response"
+            ];
+        }
+
+        validate() {
+            checkFormat(this, "rawId", "base64url");
+            checkType(this, "response", Object);
+            checkFormat(this.response, "attestationObject", "base64url");
+            checkFormat(this.response, "clientDataJSON", "base64url");
+        }
+    }
+
+    class GetOptionsRequest extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "username",
+                "displayName"
+            ];
+        }
+
+        validate() {
+            checkFormat(this, "username", "non-empty-string");
+            checkFormat(this, "displayName", "non-empty-string");
+        }
+    }
+
+    class GetOptions extends ServerResponse {
+        constructor() {
+            super();
+
+            this.propList = this.propList.concat([
+                "challenge",
+                "timeout",
+                "rpId",
+                "allowCredentials",
+                "userVerification",
+                "extensions"
+            ]);
+        }
+
+        validate() {
+            super.validate();
+            checkFormat(this, "challenge", "base64url");
+            checkOptionalFormat(this, "timeout", "positive-integer");
+            checkOptionalFormat(this, "rpId", "non-empty-string");
+            checkOptionalType(this, "allowCredentials", Array);
+            if (this.allowCredentials) checkCredentialDescriptorList(this.allowCredentials);
+            if (this.userVerification) checkUserVerification(this.userVerification);
+            checkOptionalType(this, "extensions", Object);
+        }
+    }
+
+    class CredentialAssertion extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "rawId",
+                "response"
+            ];
+        }
+
+        validate() {
+            checkFormat(this, "rawId", "base64url");
+            checkType(this, "response", Object);
+            checkFormat(this.response, "authenticatorData", "base64url");
+            checkFormat(this.response, "clientDataJSON", "base64url");
+            checkFormat(this.response, "signature", "base64url");
+            checkOptionalFormat(this.response, "userHandle", "nullable-string");
+        }
+    }
+
+    // 1a. ServerPublicKeyCredentialCreationOptionsRequest
+    // 1b. ServerPublicKeyCredentialCreationOptions
+    // 2a. ServerPublicKeyCredentialAttestation
+    // 2b. ServerResponse
+    // 3a. ServerPublicKeyCredentialGetOptionsRequest
+    // 3b. ServerPublicKeyCredentialGetOptions
+    // 4a. ServerPublicKeyCredentialAssertion
+    // 4b. ServerResponse
+
+    class WebAuthnOptions extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "timeout"
+            ];
+        }
+
+        merge(dst, preferDst) {
+            var i;
+            for (i = 0; i < this.propList.length; i++) {
+                var prop = this.propList[i];
+                // copy property if it isn't set
+                if (this[prop] === undefined) this[prop] = dst[prop];
+                // if the destination is set and we prefer that, copy it over
+                if (preferDst && dst[prop] !== undefined) this[prop] = dst[prop];
+            }
+        }
+    }
+
+    // exports
+    exp.defaultRoutes = {
+        attestationOptions: "/attestation/options",
+        attestationResult: "/attestation/result",
+        assertionOptions: "/assertion/options",
+        assertionResult: "/assertion/result"
+    };
+    exp.Msg = Msg;
+    exp.ServerResponse = ServerResponse;
+    exp.CreationOptionsRequest = CreationOptionsRequest;
+    exp.CreationOptions = CreationOptions;
+    exp.CredentialAttestation = CredentialAttestation;
+    exp.GetOptionsRequest = GetOptionsRequest;
+    exp.GetOptions = GetOptions;
+    exp.CredentialAssertion = CredentialAssertion;
+    exp.WebAuthnOptions = WebAuthnOptions;
+}());
+
+// WebAuthnApp class, only loaded in browser
 (function() {
     // Useful constants for working with COSE key objects
-    const cose_kty = 1;
-    const cose_kty_ec2 = 2;
-    const cose_alg = 3;
-    const cose_alg_ECDSA_w_SHA256 = -7;
-    const cose_alg_ECDSA_w_SHA512 = -36;
-    const cose_crv = -1;
-    const cose_crv_P256 = 1;
-    const cose_crv_x = -2;
-    const cose_crv_y = -3;
+    const coseAlgECDSAWithSHA256 = -7;
+
+    try {
+        if (!window) return null;
+    } catch (err) {
+        if (err instanceof ReferenceError &&
+            err.message === "window is not defined") {
+            return null;
+        }
+        throw err;
+    }
+
 
     window.addEventListener("load", function(event) {
         console.log("I'm loaded.");
@@ -19,29 +458,15 @@
         if (!window.isSecureContext) {
             eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "This web page was not loaded in a secure context (https). Please try loading the page again using https or make sure you are using a browser with secure context support." });
             document.dispatchEvent(eNotSupported);
-            console.log("webAuthnApp: not in a secure context, application not loading");
+            console.log("WebAuthnApp: not in a secure context, application not loading");
             return null;
         }
 
-        // check for navigator.credentials.create
-        if (typeof navigator.credentials !== "object" || typeof navigator.credentials.create !== "function") {
+        // check for WebAuthn CR features
+        if (typeof window.PublicKeyCredential !== "function" && typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
             eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>" });
             document.dispatchEvent(eNotSupported);
-            console.log("webAuthnApp: WebAuthn interface not supported, application not loading");
-            return null;
-        }
-
-        // Chrome 65 & 66 have navigator.credentials.create but it doesn't actually work unless you launch with a flag
-        function getChromeVersion() {
-            var raw = navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./);
-            return raw ? parseInt(raw[2], 10) : false;
-        }
-
-        var chromeVersion = getChromeVersion();
-        if (chromeVersion && getChromeVersion() < 67) {
-            eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>" });
-            document.dispatchEvent(eNotSupported);
-            console.log("webAuthnApp: WebAuthn interface not supported, Chrome must be version 67 or higher");
+            console.log("WebAuthnApp: WebAuthn interface not supported, application not loading");
             return null;
         }
     });
@@ -82,7 +507,7 @@
         this.loginChallengeMethod = config.loginChallengeMethod || "POST";
         this.loginResponseMethod = config.loginResponseMethod || "POST";
         this.timeout = config.timeout || 60000; // one minute
-        this.alg = config.alg || cose_alg_ECDSA_w_SHA256;
+        this.alg = config.alg || coseAlgECDSAWithSHA256;
         this.binaryEncoding = config.binaryEncoding;
         // TODO: relying party name
         this.appName = config.appName || window.location.hostname;
