@@ -1,4 +1,9 @@
+/* globals chai, sinon */
+
+"use strict";
+
 var assert = chai.assert;
+mocha.setup("bdd");
 
 describe("webauthnApp", function() {
     var webauthnApp;
@@ -65,6 +70,3 @@ describe("server comms", function() {
 describe("events", function() {
     it("fires events");
 });
-
-/* JSHINT */
-/* globals chai, sinon */
