@@ -28,9 +28,12 @@ module.exports = function(grunt) {
     }, {
         browserName: "firefox",
         platform: "macOS 10.12"
-    // }, {
-    //     browserName: "safari",
-    //     platform: "macOS 10.12",
+    }, {
+        browserName: "safari",
+        platform: "macOS 10.12",
+    }, {
+        browserName: "chrome",
+        platform: "android"
     }];
 
     grunt.initConfig({
@@ -48,7 +51,7 @@ module.exports = function(grunt) {
             all: {
                 options: {
                     urls: [
-                        "http://127.0.0.1:9999/test/browser/test.html"
+                        "http://saucelabs.test:9999/test/browser/test.html"
                     ],
                     browsers: browsers,
                     build: process.env.TRAVIS_JOB_ID,
