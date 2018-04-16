@@ -1,4 +1,13 @@
-/* eslint-disable strict */
+/* globals
+   defaultRoutes, Msg, ServerResponse,
+   CreationOptionsRequest, CreationOptions,
+   CredentialAttestation,
+   GetOptionsRequest, GetOptions,
+   CredentialAssertion,
+   WebAuthnOptions
+ */
+
+"use strict";
 
 // WebAuthnClientMsg, WebAuthnServerMsg, WebAuthnOptions
 (function() {
@@ -456,25 +465,33 @@
         // check for secure context
         var eNotSupported;
         if (!window.isSecureContext) {
-            eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "This web page was not loaded in a secure context (https). Please try loading the page again using https or make sure you are using a browser with secure context support." });
-            document.dispatchEvent(eNotSupported);
-            console.log("WebAuthnApp: not in a secure context, application not loading");
+            fireNotSupported("This web page was not loaded in a secure context (https). Please try loading the page again using https or make sure you are using a browser with secure context support.");
             return null;
         }
 
         // check for WebAuthn CR features
         if (typeof window.PublicKeyCredential !== "function" && typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
-            eNotSupported = new CustomEvent("webauthn-not-supported", { detail: "WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>" });
-            document.dispatchEvent(eNotSupported);
-            console.log("WebAuthnApp: WebAuthn interface not supported, application not loading");
+            fireNotSupported("WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>");
             return null;
         }
     });
 
-    // TODO:
-    // ClientPreference class
-    // ServerMsg class
-    // ServerResponse class
+    function fireEvent(type, data) {
+        var e = new CustomEvent(type, { detail: data });
+        document.dispatchEvent(e);
+    }
+
+    function fireNotSupported(reason) {
+        fireEvent("webauthn-not-supported", reason);
+        fireDebug("not-supported", reason);
+    }
+
+    function fireDebug(subtype, data) {
+        fireEvent("webauthn-debug", {
+            subtype: subtype,
+            data: data
+        });
+    }
 
     function WebAuthnResult(opt) {
         var success = true;
@@ -520,6 +537,7 @@
     };
 
     WebAuthnApp.prototype.register = function() {
+        fireDebug("webauthn-register-start");
         var self = this;
         // get challenge
         return this.getRegisterChallenge()
@@ -536,9 +554,8 @@
                 return self.webAuthnCreate(serverMsg.response);
             })
             .then(function(newCred) {
-                console.log("newCred", newCred);
-                var eRegDone = new CustomEvent("webauthn-user-presence-done");
-                document.dispatchEvent(eRegDone);
+                fireEvent("webauthn-user-presence-done");
+                fireDebug("create-result", newCred);
 
                 // send response
                 return self.sendRegisterResponse(newCred);
@@ -563,10 +580,14 @@
                 console.log("REGISTER FAILED!\n", err);
                 var eRegComplete = new CustomEvent("webauthn-register-complete", { detail: new WebAuthnResult(err) });
                 document.dispatchEvent(eRegComplete);
+            })
+            .finally(function() {
+                fireDebug("webauthn-register-done");
             });
     };
 
     WebAuthnApp.prototype.login = function() {
+        fireDebug("webauthn-login-start");
         var self = this;
         // get challenge
         return this.getLoginChallenge()
@@ -603,8 +624,12 @@
             })
             .catch(function(err) {
                 console.log("LOGIN FAILED!\n", err);
+                fireDebug("");
                 var eLoginComplete = new CustomEvent("webauthn-login-complete", { detail: new WebAuthnResult(err) });
                 document.dispatchEvent(eLoginComplete);
+            })
+            .finally(function() {
+                fireDebug("webauthn-login-done");
             });
     };
 
@@ -667,23 +692,22 @@
             }
         };
 
-        console.log("GET OPTIONS:", options);
-
-        var eRegStart = new CustomEvent("webauthn-user-presence-start");
-        document.dispatchEvent(eRegStart);
-
+        fireEvent("webauthn-user-presence-start");
+        fireDebug("user-presence-start", options);
         return navigator.credentials.get(options);
     };
 
     WebAuthnApp.prototype.getRegisterChallenge = function() {
-        var sendData = {
-            username: this.username
-        };
+        var sendData = CreationOptionsRequest.from({
+            username: this.username,
+            displayName: this.displayName || this.username
+        });
 
         return this.send(
             this.registerChallengeMethod,
             this.registerChallengeEndpoint,
-            sendData
+            sendData,
+            CreationOptions
         );
     };
 
@@ -707,7 +731,17 @@
             this.registerResponseMethod,
             this.registerResponseEndpoint,
             msg
-        );
+        ).then(function(res) {
+            if (res.status === 200) {
+                res.response.status = "ok";
+                return res.response;
+            }
+        }).catch(function(err) {
+            return {
+                status: "failed",
+                errorMessage: err
+            };
+        });
     };
 
     WebAuthnApp.prototype.getLoginChallenge = function() {
@@ -723,7 +757,6 @@
     };
 
     WebAuthnApp.prototype.sendLoginResponse = function(assn) {
-        console.log("ASSERTION:", assn);
         var encoding = "base64";
 
         var msg = {
@@ -738,8 +771,6 @@
             }
         };
 
-        console.log("msg", msg);
-
         return this.send(
             this.loginResponseMethod,
             this.loginResponseEndpoint,
@@ -747,38 +778,82 @@
         );
     };
 
-    WebAuthnApp.prototype.send = function(method, url, data) {
+    WebAuthnApp.prototype.send = function(method, url, data, responseConstructor) {
+        // check args
+        if (method !== "POST") {
+            return Promise.reject(new Error("why not POST your data?"));
+        }
+
+        if (typeof url !== "string") {
+            return Promise.reject(new Error("expected 'url' to be 'string', got: " + typeof url));
+        }
+
+        if (!(data instanceof Msg)) {
+            return Promise.reject(new Error("expected 'data' to be instance of 'Msg'"));
+        }
+
+        if (typeof responseConstructor !== "function") {
+            return Promise.reject(new Error("expected 'responseConstructor' to be 'function', got: " + typeof responseConstructor));
+        }
+
+        // validate the data we're sending
+        try {
+            data.validate();
+        } catch (err) {
+            console.log("validation error", err);
+            return Promise.reject(err);
+        }
+
         // TODO: maybe some day upgrade to fetch(); have to change the mock in the tests too
         return new Promise(function(resolve, reject) {
-            var json = JSON.stringify(data);
-            console.log("SENDING:", json);
-
             var xhr = new XMLHttpRequest();
-            xhr.open("POST", url, true);
+            function rejectWithFailed(errorMessage) {
+                var result = ServerResponse.from({
+                    status: "failed",
+                    errorMessage: errorMessage
+                });
+                return reject(result);
+            }
+
+            xhr.open(method, url, true);
             xhr.setRequestHeader("Content-type", "application/json; charset=utf-8");
             xhr.onload = function() {
+
                 var response;
+                fireDebug("response", xhr);
                 try {
                     response = JSON.parse(xhr.responseText);
                 } catch (err) {
-                    console.log("Invalid JSON response from server");
-                    console.log(xhr.responseText);
-                    err.message = "Invalid JSON response from server";
-                    return reject(err);
-                }
-                if (xhr.readyState == 4 && xhr.status == "200") {
-                    return resolve({
-                        status: xhr.status,
-                        response: response
-                    });
+                    return rejectWithFailed("error parsing JSON response: '" + xhr.responseText + "'");
                 }
 
-                return resolve(response);
+                var msg = responseConstructor.from(response[0]);
+                msg.status = "ok";
+
+                if (xhr.status !== 200) {
+                    return rejectWithFailed("server returned status: " + xhr.status);
+                }
+
+                if (xhr.readyState !== 4) {
+                    return rejectWithFailed("server returned ready state: " + xhr.readyState);
+                }
+
+                try {
+                    msg.validate();
+                } catch (err) {
+                    console.log("validation err:", err.message);
+                    return rejectWithFailed(err.message);
+                }
+
+                console.log("resolving");
+                return resolve(msg);
             };
             xhr.onerror = function() {
-                return reject(new Error("post to URL failed:" + url));
+                fireDebug("response", new Error("failed due to unspecified error"));
+                return rejectWithFailed("POST to URL failed:" + url);
             };
-            xhr.send(json);
+            fireDebug("send", data);
+            xhr.send(data.toString());
         });
     };
 
