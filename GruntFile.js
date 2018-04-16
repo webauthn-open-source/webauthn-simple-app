@@ -1,3 +1,5 @@
+"use strict";
+
 module.exports = function(grunt) {
     var browsers = [{
         browserName: "firefox",
@@ -9,9 +11,9 @@ module.exports = function(grunt) {
         browserName: "MicrosoftEdge",
         platform: "Windows 10"
     }, {
-        browserName: "internet explorer",
-        platform: "Windows 10"
-    }, {
+    //     browserName: "internet explorer",
+    //     platform: "Windows 10"
+    // }, {
         browserName: "chrome",
         platform: "Linux"
     }, {
@@ -26,9 +28,9 @@ module.exports = function(grunt) {
     }, {
         browserName: "firefox",
         platform: "macOS 10.12"
-    }, {
-        browserName: "safari",
-        platform: "macOS 10.12",
+    // }, {
+    //     browserName: "safari",
+    //     platform: "macOS 10.12",
     }];
 
     grunt.initConfig({
