@@ -6,9 +6,10 @@ notifications:
   email: true
 language: node_js
 node_js:
-  - '6'
-# before_install:
-#   - npm i -g npm@^2.0.0
+  - '8'
+addons:
+  hosts:
+    - saucelabs.test
 before_script:
   - npm prune
   - 'curl -Lo travis_after_all.py https://git.io/vLSON'
