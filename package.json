@@ -9,7 +9,7 @@
   "scripts": {
     "test": "mocha test/common/*.js test/node/*.js && grunt default",
     "docs": "jsdoc -c ./.jsdoc-conf.json",
-    "publish": "gh-pages --silent --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
+    "publish-docs": "gh-pages --silent --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
   },
   "keywords": [
     "webauthn",
