@@ -68,10 +68,10 @@ describe("webauthnApp", function() {
             constructor() {
                 super();
 
-                this.propList = [
+                this.propList = this.propList.concat([
                     "id",
                     "comment"
-                ];
+                ]);
             }
 
             validate() {}
@@ -120,7 +120,7 @@ describe("webauthnApp", function() {
                 });
         });
 
-        it("resolves to Msg on failure", function(done) {
+        it("resolves to Error on failure", function(done) {
             var msg = TestMsg.from({
                 id: 12,
                 comment: "hi there"
@@ -130,9 +130,8 @@ describe("webauthnApp", function() {
                     done(new Error("should not have resolved"));
                 })
                 .catch(function(res) {
-                    assert.instanceOf(res, ServerResponse);
-                    assert.strictEqual(res.status, "failed");
-                    assert.strictEqual(res.errorMessage, "error parsing JSON response: ''");
+                    assert.instanceOf(res, Error);
+                    assert.strictEqual(res.message, "server returned status: 404");
                     done();
                 })
                 .catch(function(err) {
@@ -159,7 +158,7 @@ describe("webauthnApp", function() {
             serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
             webauthnApp.username = "adam";
             return webauthnApp
-                .getRegisterChallenge("apowers")
+                .getRegisterChallenge()
                 .then(function() {
                     assert.strictEqual(sendSpy.callCount, 1);
                     assert.deepEqual(
@@ -177,9 +176,19 @@ describe("webauthnApp", function() {
                 });
         });
 
+        it("resolves to correct result", function() {
+            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
+            webauthnApp.username = "adam";
+            return webauthnApp.getRegisterChallenge()
+                .then(function(res) {
+                    assert.instanceOf(res, CreationOptions);
+                    assert.strictEqual(res.status, "ok");
+                    assert.strictEqual(res.challenge, "sP4MiwodjreC8-80IMjcyWNlo_Y1SJXmFgQNBilnjdf30WRsjFDhDYmfY4-4uhq2HFjYREbXdr6Vjuvz2XvTjA==");
+                });
+        });
         it("rejects if username not set", function(done) {
             serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.getRegisterChallenge("apowers")
+            webauthnApp.getRegisterChallenge()
                 .then(function() {
                     done(new Error("should have rejected"));
                 })
@@ -190,20 +199,97 @@ describe("webauthnApp", function() {
                 });
         });
 
-        it.skip("resolves to correct result", function() {
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
+        it("rejects on server error", function(done) {
+            // XXX: no server fake
             webauthnApp.username = "adam";
-            return webauthnApp.getRegisterChallenge("apowers")
-                .then(function(res) {
-                    console.log("res", res);
-                    assert.fail();
+            webauthnApp.getRegisterChallenge()
+                .then(function() {
+                    done(new Error("should have rejected"));
+                })
+                .catch(function(err) {
+                    console.log(err);
+                    assert.instanceOf(err, Error);
+                    assert.strictEqual(err.message, "server returned status: 404");
+                    done();
+                })
+                .catch(function(err) {
+                    done(err);
                 });
         });
     });
 
     describe("sendRegisterResponse", function() {
-        it("sends result");
-        it("fails gracefully");
+        var serverFake = serverMock();
+        var sendSpy;
+        beforeEach(function() {
+            sendSpy = sinon.spy(webauthnApp, "send");
+        });
+        afterEach(function() {
+            webauthnApp.send.restore();
+        });
+
+        it.skip("can get register challenge", function() {
+            serverFake("/webauthn/register/response", fido2Helpers.server.basicCreationOptions);
+            webauthnApp.username = "adam";
+            return webauthnApp
+                .sendRegisterResponse(fido2Helpers.lib.makeCredentialAttestationU2fResponse)
+                .then(function() {
+                    assert.strictEqual(sendSpy.callCount, 1);
+                    assert.deepEqual(
+                        sendSpy.args[0],
+                        [
+                            "POST",
+                            "/webauthn/register/response",
+                            CreationOptionsRequest.from({
+                                username: "adam",
+                                displayName: "adam"
+                            }),
+                            CreationOptions
+                        ]
+                    );
+                });
+        });
+
+        it.skip("resolves to correct result", function() {
+            serverFake("/webauthn/register/response", fido2Helpers.server.basicCreationOptions);
+            webauthnApp.username = "adam";
+            return webauthnApp.sendRegisterResponse()
+                .then(function(res) {
+                    assert.instanceOf(res, CreationOptions);
+                    assert.strictEqual(res.status, "ok");
+                    assert.strictEqual(res.challenge, "sP4MiwodjreC8-80IMjcyWNlo_Y1SJXmFgQNBilnjdf30WRsjFDhDYmfY4-4uhq2HFjYREbXdr6Vjuvz2XvTjA==");
+                });
+        });
+        it.skip("rejects if username not set", function(done) {
+            serverFake("/webauthn/register/response", fido2Helpers.server.basicCreationOptions);
+            webauthnApp.sendRegisterResponse()
+                .then(function() {
+                    done(new Error("should have rejected"));
+                })
+                .catch(function(err) {
+                    assert.instanceOf(err, Error);
+                    assert.strictEqual(err.message, "expected 'username' to be 'string', got: undefined");
+                    done();
+                });
+        });
+
+        it.skip("rejects on server error", function(done) {
+            // XXX: no server fake
+            webauthnApp.username = "adam";
+            webauthnApp.sendRegisterResponse()
+                .then(function() {
+                    done(new Error("should have rejected"));
+                })
+                .catch(function(err) {
+                    console.log(err);
+                    assert.instanceOf(err, Error);
+                    assert.strictEqual(err.message, "server returned status: 404");
+                    done();
+                })
+                .catch(function(err) {
+                    done(err);
+                });
+        });
     });
 
     describe("getLoginChallenge", function() {

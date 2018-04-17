@@ -9,18 +9,569 @@
 
 "use strict";
 
-// WebAuthnClientMsg, WebAuthnServerMsg, WebAuthnOptions
+// messages for sending / receiving
+// registration:
+// 1a. client >>> CreationOptionsRequest >>> server
+// 1b. client <<< CreationOptions <<< server
+// 2a. client >>> CredentialAttestation >>> server
+// 2b. client <<< ServerResponse <<< server
+// authentication:
+// 1a. client >>> GetOptionsRequest >>> server
+// 1b. client <<< GetOptions <<< server
+// 2a. client >>> CredentialAssertion >>> server
+// 2b. client <<< ServerResponse <<< server
 (function() {
-    var exp;
+    /**
+     * Virtual class for messages that serves as the base
+     * for all other messages.
+     */
+    class Msg {
+        constructor() {
+            /** @type {Array} The list of "official" properties that are managed for this object and sent over the wire. */
+            this.propList = [];
+        }
 
-    // node.js exports
-    if (typeof module === "object" && module.exports) {
-        exp = module.exports;
+        /**
+         * Converts the `Msg` to an `Object` containing all the properties in `propList` that have been defined on the `Msg`
+         * @return {Object} An `Object` that contains all the properties to be sent over the wire.
+         */
+        toObject() {
+            var obj = {};
+            copyPropList(this, obj, this.propList);
+            return obj;
+        }
+
+        /**
+         * Converts the `Msg` to a JSON string containing all the properties in `propList` that have been defined on the `Msg`
+         * @return {String} A JSON `String` that contains all the properties to be sent over the wire.
+         */
+        toString() {
+            return JSON.stringify(this.toObject());
+        }
+
+        /**
+         * Converts the `Msg` to a human-readable string. Useful for debugging messages as they are being sent / received.
+         * @return {String} The human-readable message, probably multiple lines.
+         */
+        toHumanString() {
+            return JSON.stringify(this.toObject(), undefined, 4);
+        }
+
+        /**
+         * Ensures that all the required properties in the object are defined, and all defined properties are of the correct format.
+         * @throws {Error} If any required field is undefined, or any defined field is of the wrong format.
+         */
+        validate() {
+            throw new Error("not implemented");
+        }
+
+        /**
+         * Any fields that are known to be encoded as `base64url` are decoded to an `ArrayBuffer`
+         */
+        decodeBinaryProperties() {
+            throw new Error("not implemented");
+        }
+
+        /**
+         * Any fields that are known to be encoded as an `ArrayBuffer` are encoded as `base64url`
+         */
+        encodeBinaryProperties() {
+            throw new Error("not implemented");
+        }
+
+        /**
+         * Creates a new `Msg` object from the specified parameter. Note that the resulting `Msg` is not validated
+         * and all fields are their original values (call {@link decodeBinaryProperties} to convert fields to ArrayBuffers)
+         * if needed.
+         * @param  {String|Object} json The JSON encoded string, or already parsed JSON message in an `Object`
+         * @return {Msg}      The newly created message from the Object.
+         */
+        static from(json) {
+            var obj;
+            if (typeof json === "string") {
+                try {
+                    obj = JSON.parse(json);
+                } catch (err) {
+                    throw new TypeError("error parsing JSON string");
+                }
+            }
+
+            if (typeof json === "object") {
+                obj = json;
+            }
+
+            if (typeof obj !== "object") {
+                throw new TypeError("could not coerce 'json' argument to an object");
+            }
+
+            var msg = new this.prototype.constructor();
+            copyPropList(obj, msg, msg.propList);
+
+            if (obj.preferences) {
+                msg.preferences = WebAuthnOptions.from(obj.preferences);
+            }
+
+            return msg;
+        }
     }
 
-    // browser exports
+    /**
+     * Generic {@link Msg} from server to indicate success or failure. Used by
+     * itself for simple responses, or extended for more complex responses.
+     * @extends {Msg}
+     */
+    class ServerResponse extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "status",
+                "errorMessage"
+            ];
+        }
+
+        validate() {
+            switch (this.status) {
+                case "ok":
+                    if (this.errorMessage === undefined) {
+                        this.errorMessage = "";
+                    }
+
+                    // if status is "ok", errorMessage must be ""
+                    checkTrue(this.errorMessage === "", "errorMessage must be empty string when status is 'ok'");
+                    break;
+
+                case "failed":
+                    // if status is "failed", errorMessage must be non-zero-length string
+                    checkType(this, "errorMessage", "string");
+                    checkTrue(
+                        this.errorMessage.length > 0,
+                        "errorMessage must be non-zero length when status is 'failed'"
+                    );
+                    break;
+
+                // status is string, either "ok" or "failed"
+                default:
+                    throw new Error("'expected 'status' to be 'string', got: " + this.status);
+            }
+        }
+
+        decodeBinaryProperties() {}
+
+        encodeBinaryProperties() {}
+    }
+
+    /**
+     * A {@link Msg} object that the browser sends to the server to request
+     * the options to be used for the WebAuthn `create()` call.
+     * @extends {Msg}
+     */
+    class CreationOptionsRequest extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "username",
+                "displayName",
+                "authenticatorSelection",
+                "attestation"
+            ];
+        }
+
+        validate() {
+            checkFormat(this, "username", "non-empty-string");
+            checkFormat(this, "displayName", "non-empty-string");
+            checkAuthenticatorSelection(this);
+            checkAttestation(this);
+        }
+
+        decodeBinaryProperties() {}
+
+        encodeBinaryProperties() {}
+    }
+
+    /**
+     * The options to be used for WebAuthn `create()`
+     * @extends {ServerResponse}
+     */
+    class CreationOptions extends ServerResponse {
+        constructor() {
+            super();
+
+            this.propList = this.propList.concat([
+                "rp",
+                "user",
+                "challenge",
+                "pubKeyCredParams",
+                "timeout",
+                "excludeCredentials",
+                "authenticatorSelection",
+                "attestation",
+                "extensions"
+            ]);
+        }
+
+        validate() {
+            super.validate();
+
+            // check types
+            checkType(this, "rp", Object);
+            checkFormat(this.rp, "name", "non-empty-string");
+            checkOptionalFormat(this.rp, "id", "non-empty-string");
+            checkOptionalFormat(this.rp, "icon", "non-empty-string");
+
+            checkType(this, "user", Object);
+            checkFormat(this.user, "name", "non-empty-string");
+            checkFormat(this.user, "id", "base64url");
+            checkFormat(this.user, "displayName", "non-empty-string");
+            checkOptionalFormat(this.user, "icon", "non-empty-string");
+
+            checkFormat(this, "challenge", "base64url");
+            checkType(this, "pubKeyCredParams", Array);
+            this.pubKeyCredParams.forEach(function(cred) {
+                checkType(cred, "alg", "number");
+                checkTrue(cred.type === "public-key", "credential type must be 'public-key'");
+            });
+            checkOptionalFormat(this, "timeout", "positive-integer");
+            checkOptionalType(this, "excludeCredentials", Array);
+            if (this.excludeCredentials) checkCredentialDescriptorList(this.excludeCredentials);
+
+            checkAuthenticatorSelection(this);
+            checkAttestation(this);
+
+            checkOptionalType(this, "extensions", Object);
+        }
+
+        decodeBinaryProperties() {
+            if (this.user.id) {
+                this.user.id = coerceToArrayBuffer(this.user.id, "user.id");
+            }
+
+            this.challenge = coerceToArrayBuffer(this.challenge, "challenge");
+
+            if (this.excludeCredentials) {
+                this.excludeCredentials.forEach(function (cred, idx) {
+                    cred.id = coerceToArrayBuffer(cred.id, "excludeCredentials[" + idx + "].id");
+                });
+            }
+        }
+
+        encodeBinaryProperties() {
+            if (this.user.id) {
+                this.user.id = coerceToBase64Url(this.user.id, "user.id");
+            }
+
+            this.challenge = coerceToBase64Url(this.challenge, "challenge");
+
+            if (this.excludeCredentials) {
+                this.excludeCredentials.forEach(function (cred, idx) {
+                    cred.id = coerceToBase64Url(cred.id, "excludeCredentials[" + idx + "].id");
+                });
+            }
+        }
+    }
+
+    /**
+     * This is the `PublicKeyCredential` that was the result of the `create()` call.
+     * @extends {Msg}
+     */
+    class CredentialAttestation extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "rawId",
+                "response"
+            ];
+        }
+
+        validate() {
+            checkFormat(this, "rawId", "base64url");
+            checkType(this, "response", Object);
+            checkFormat(this.response, "attestationObject", "base64url");
+            checkFormat(this.response, "clientDataJSON", "base64url");
+        }
+
+        decodeBinaryProperties() {
+            this.rawId = coerceToArrayBuffer(this.rawId, "rawId");
+            this.response.attestationObject = coerceToArrayBuffer(this.response.attestationObject, "response.attestationObject");
+            this.response.clientDataJSON = coerceToArrayBuffer(this.response.clientDataJSON, "response.clientDataJSON");
+        }
+
+        encodeBinaryProperties() {
+            this.rawId = coerceToBase64Url(this.rawId, "rawId");
+            this.response.attestationObject = coerceToBase64Url(this.response.attestationObject, "response.attestationObject");
+            this.response.clientDataJSON = coerceToBase64Url(this.response.clientDataJSON, "response.clientDataJSON");
+        }
+    }
+
+    /**
+     * A {@link Msg} object that the browser sends to the server to request
+     * the options to be used for the WebAuthn `get()` call.
+     * @extends {Msg}
+     */
+    class GetOptionsRequest extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "username",
+                "displayName"
+            ];
+        }
+
+        validate() {
+            checkFormat(this, "username", "non-empty-string");
+            checkFormat(this, "displayName", "non-empty-string");
+        }
+
+        decodeBinaryProperties() {}
+
+        encodeBinaryProperties() {}
+    }
+
+    /**
+     * The options to be used for WebAuthn `get()`
+     * @extends {ServerResponse}
+     */
+    class GetOptions extends ServerResponse {
+        constructor() {
+            super();
+
+            this.propList = this.propList.concat([
+                "challenge",
+                "timeout",
+                "rpId",
+                "allowCredentials",
+                "userVerification",
+                "extensions"
+            ]);
+        }
+
+        validate() {
+            super.validate();
+            checkFormat(this, "challenge", "base64url");
+            checkOptionalFormat(this, "timeout", "positive-integer");
+            checkOptionalFormat(this, "rpId", "non-empty-string");
+            checkOptionalType(this, "allowCredentials", Array);
+            if (this.allowCredentials) checkCredentialDescriptorList(this.allowCredentials);
+            if (this.userVerification) checkUserVerification(this.userVerification);
+            checkOptionalType(this, "extensions", Object);
+        }
+
+        decodeBinaryProperties() {
+            this.challenge = coerceToArrayBuffer(this.challenge, "challenge");
+            if (this.allowCredentials) {
+                this.allowCredentials.forEach(function (cred) {
+                    cred.id = coerceToArrayBuffer(cred.id, "cred.id");
+                });
+            }
+        }
+
+        encodeBinaryProperties() {
+            this.challenge = coerceToBase64Url(this.challenge, "challenge");
+            if (this.allowCredentials) {
+                this.allowCredentials.forEach(function (cred, idx) {
+                    cred.id = coerceToBase64Url(cred.id, "allowCredentials[" + idx + "].id");
+                });
+            }
+        }
+    }
+
+    /**
+     * This is the `PublicKeyCredential` that was the result of the `get()` call.
+     * @extends {Msg}
+     */
+    class CredentialAssertion extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "rawId",
+                "response"
+            ];
+        }
+
+        validate() {
+            checkFormat(this, "rawId", "base64url");
+            checkType(this, "response", Object);
+            checkFormat(this.response, "authenticatorData", "base64url");
+            checkFormat(this.response, "clientDataJSON", "base64url");
+            checkFormat(this.response, "signature", "base64url");
+            checkOptionalFormat(this.response, "userHandle", "nullable-string");
+        }
+
+        decodeBinaryProperties() {
+            this.rawId = coerceToArrayBuffer(this.rawId, "rawId");
+            this.response.clientDataJSON = coerceToArrayBuffer(this.response.clientDataJSON, "response.clientDataJSON");
+            this.response.signature = coerceToArrayBuffer(this.response.signature, "response.signature");
+            this.response.authenticatorData = coerceToArrayBuffer(this.response.authenticatorData, "response.authenticatorData");
+        }
+
+        encodeBinaryProperties() {
+            this.rawId = coerceToBase64Url(this.rawId, "rawId");
+            this.response.clientDataJSON = coerceToBase64Url(this.response.clientDataJSON, "response.clientDataJSON");
+            this.response.signature = coerceToBase64Url(this.response.signature, "response.signature");
+            this.response.authenticatorData = coerceToBase64Url(this.response.authenticatorData, "response.authenticatorData");
+        }
+    }
+
+    class WebAuthnOptions extends Msg {
+        constructor() {
+            super();
+
+            this.propList = [
+                "timeout"
+            ];
+        }
+
+        merge(dst, preferDst) {
+            var i;
+            for (i = 0; i < this.propList.length; i++) {
+                var prop = this.propList[i];
+                // copy property if it isn't set
+                if (this[prop] === undefined) this[prop] = dst[prop];
+                // if the destination is set and we prefer that, copy it over
+                if (preferDst && dst[prop] !== undefined) this[prop] = dst[prop];
+            }
+        }
+    }
+
+    // these get defined different depending on whether we're running in a browser or node.js
+    var exp, coerceToBase64Url, coerceToArrayBuffer;
+
+    // running in node.js
+    if (typeof module === "object" && module.exports) {
+        exp = module.exports;
+        coerceToBase64Url = function(thing, name) {
+            name = name || "''";
+
+            // Array to Uint8Array
+            if (Array.isArray(thing)) {
+                thing = Uint8Array.from(thing);
+            }
+
+            // Uint8Array, etc. to ArrayBuffer
+            if (thing.buffer instanceof ArrayBuffer && !(thing instanceof Buffer)) {
+                thing = thing.buffer;
+            }
+
+            // ArrayBuffer to Buffer
+            if (thing instanceof ArrayBuffer && !(thing instanceof Buffer)) {
+                thing = new Buffer(thing);
+            }
+
+            // Buffer to base64 string
+            if (thing instanceof Buffer) {
+                thing = thing.toString("base64");
+            }
+
+            if (typeof thing !== "string") {
+                throw new Error(`could not coerce '${name}' to string`);
+            }
+
+            // base64 to base64url
+            // NOTE: "=" at the end of challenge is optional, strip it off here so that it's compatible with client
+            thing = thing.replace(/\+/g, "-").replace(/\//g, "_").replace(/=*$/g, "");
+
+            return thing;
+        };
+
+        coerceToArrayBuffer = function(buf, name) {
+            name = name || "''";
+
+            if (typeof buf === "string") {
+                // base64url to base64
+                buf = buf.replace(/-/g, "+").replace(/_/g, "/");
+                // base64 to Buffer
+                buf = Buffer.from(buf, "base64");
+            }
+
+            // Buffer or Array to Uint8Array
+            if (buf instanceof Buffer || Array.isArray(buf)) {
+                buf = new Uint8Array(buf);
+            }
+
+            // Uint8Array to ArrayBuffer
+            if (buf instanceof Uint8Array) {
+                buf = buf.buffer;
+            }
+
+            // error if none of the above worked
+            if (!(buf instanceof ArrayBuffer)) {
+                throw new TypeError(`could not coerce '${name}' to ArrayBuffer`);
+            }
+
+            return buf;
+        };
+    }
+
+    // running in browser
     try {
         if (window) exp = window;
+        coerceToBase64Url = function(thing, name) {
+            // Array or ArrayBuffer to Uint8Array
+            if (Array.isArray(thing)) {
+                thing = Uint8Array.from(thing);
+            }
+
+            if (thing instanceof ArrayBuffer) {
+                thing = new Uint8Array(thing);
+            }
+
+            // Uint8Array to base64
+            if (thing instanceof Uint8Array) {
+                var str = "";
+                var len = thing.byteLength;
+
+                for (var i = 0; i < len; i++) {
+                    str += String.fromCharCode(thing[i]);
+                }
+                thing = window.btoa(str);
+            }
+
+            if (typeof thing !== "string") {
+                throw new Error("could not coerce '" + name + "' to string");
+            }
+
+            // base64 to base64url
+            // NOTE: "=" at the end of challenge is optional, strip it off here
+            thing = thing.replace(/\+/g, "-").replace(/\//g, "_").replace(/=*$/g, "");
+
+            return thing;
+        };
+
+        coerceToArrayBuffer = function(thing, name) {
+            if (typeof thing === "string") {
+                // base64url to base64
+                thing = thing.replace(/-/g, "+").replace(/_/g, "/");
+
+                // base64 to Uint8Array
+                var str = window.atob(thing);
+                var bytes = new Uint8Array(str.length);
+                for (var i = 0; i < str.length; i++) {
+                    bytes[i] = str.charCodeAt(i);
+                }
+                thing = bytes;
+            }
+
+            // Array to Uint8Array
+            if (Array.isArray(thing)) {
+                thing = new Uint8Array(thing);
+            }
+
+            // Uint8Array to ArrayBuffer
+            if (thing instanceof Uint8Array) {
+                thing = thing.buffer;
+            }
+
+            // error if none of the above worked
+            if (!(thing instanceof ArrayBuffer)) {
+                throw new TypeError("could not coerce '" + name + "' to ArrayBuffer");
+            }
+
+            return thing;
+        };
     } catch (err) {
         // ignore
     }
@@ -156,276 +707,6 @@
         );
     }
 
-    // virtual msg class, serves as base for other messages
-    class Msg {
-        constructor() {
-            this.propList = [];
-        }
-
-        toObject() {
-            var obj = {};
-            copyPropList(this, obj, this.propList);
-            return obj;
-        }
-
-        toString() {
-            return JSON.stringify(this.toObject());
-        }
-
-        toPrettyString() {
-            return JSON.stringify(this.toObject(), undefined, 4);
-        }
-
-        validate() {
-            throw Error("not implemented");
-        }
-
-        static from(json) {
-            var obj;
-            if (typeof json === "string") {
-                try {
-                    obj = JSON.parse(json);
-                } catch (err) {
-                    throw new TypeError("error parsing JSON string");
-                }
-            }
-
-            if (typeof json === "object") {
-                obj = json;
-            }
-
-            if (typeof obj !== "object") {
-                throw new TypeError("couldn't coerce 'json' argument to an object");
-            }
-
-            var msg = new this.prototype.constructor();
-            copyPropList(obj, msg, msg.propList);
-
-            if (obj.preferences) {
-                msg.preferences = WebAuthnOptions.from(obj.preferences);
-            }
-
-            return msg;
-        }
-    }
-
-    class ServerResponse extends Msg {
-        constructor() {
-            super();
-
-            this.propList = [
-                "status",
-                "errorMessage"
-            ];
-        }
-
-        validate() {
-            switch (this.status) {
-                case "ok":
-                    if (this.errorMessage === undefined) {
-                        this.errorMessage = "";
-                    }
-
-                    // if status is "ok", errorMessage must be ""
-                    checkTrue(this.errorMessage === "", "errorMessage must be empty string when status is 'ok'");
-                    break;
-
-                case "failed":
-                    // if status is "failed", errorMessage must be non-zero-length string
-                    checkType(this, "errorMessage", "string");
-                    checkTrue(
-                        this.errorMessage.length > 0,
-                        "errorMessage must be non-zero length when status is 'failed'"
-                    );
-                    break;
-
-                // status is string, either "ok" or "failed"
-                default:
-                    throw new Error("'expected 'status' to be 'string', got: " + this.status);
-            }
-        }
-    }
-
-    class CreationOptionsRequest extends Msg {
-        constructor() {
-            super();
-
-            this.propList = [
-                "username",
-                "displayName",
-                "authenticatorSelection",
-                "attestation"
-            ];
-        }
-
-        validate() {
-            checkFormat(this, "username", "non-empty-string");
-            checkFormat(this, "displayName", "non-empty-string");
-            checkAuthenticatorSelection(this);
-            checkAttestation(this);
-        }
-    }
-
-    class CreationOptions extends ServerResponse {
-        constructor() {
-            super();
-
-            this.propList = this.propList.concat([
-                "rp",
-                "user",
-                "challenge",
-                "pubKeyCredParams",
-                "timeout",
-                "excludeCredentials",
-                "authenticatorSelection",
-                "attestation",
-                "extensions"
-            ]);
-        }
-
-        validate() {
-            super.validate();
-
-            // check types
-            checkType(this, "rp", Object);
-            checkFormat(this.rp, "name", "non-empty-string");
-            checkOptionalFormat(this.rp, "id", "non-empty-string");
-            checkOptionalFormat(this.rp, "icon", "non-empty-string");
-
-            checkType(this, "user", Object);
-            checkFormat(this.user, "name", "non-empty-string");
-            checkFormat(this.user, "id", "base64url");
-            checkFormat(this.user, "displayName", "non-empty-string");
-            checkOptionalFormat(this.user, "icon", "non-empty-string");
-
-            checkFormat(this, "challenge", "base64url");
-            checkType(this, "pubKeyCredParams", Array);
-            this.pubKeyCredParams.forEach(function(cred) {
-                checkType(cred, "alg", "number");
-                checkTrue(cred.type === "public-key", "credential type must be 'public-key'");
-            });
-            checkOptionalFormat(this, "timeout", "positive-integer");
-            checkOptionalType(this, "excludeCredentials", Array);
-
-            if (this.excludeCredentials) checkCredentialDescriptorList(this.excludeCredentials);
-
-            checkAuthenticatorSelection(this);
-            checkAttestation(this);
-
-            checkOptionalType(this, "extensions", Object);
-        }
-    }
-
-    class CredentialAttestation extends Msg {
-        constructor() {
-            super();
-
-            this.propList = [
-                "rawId",
-                "response"
-            ];
-        }
-
-        validate() {
-            checkFormat(this, "rawId", "base64url");
-            checkType(this, "response", Object);
-            checkFormat(this.response, "attestationObject", "base64url");
-            checkFormat(this.response, "clientDataJSON", "base64url");
-        }
-    }
-
-    class GetOptionsRequest extends Msg {
-        constructor() {
-            super();
-
-            this.propList = [
-                "username",
-                "displayName"
-            ];
-        }
-
-        validate() {
-            checkFormat(this, "username", "non-empty-string");
-            checkFormat(this, "displayName", "non-empty-string");
-        }
-    }
-
-    class GetOptions extends ServerResponse {
-        constructor() {
-            super();
-
-            this.propList = this.propList.concat([
-                "challenge",
-                "timeout",
-                "rpId",
-                "allowCredentials",
-                "userVerification",
-                "extensions"
-            ]);
-        }
-
-        validate() {
-            super.validate();
-            checkFormat(this, "challenge", "base64url");
-            checkOptionalFormat(this, "timeout", "positive-integer");
-            checkOptionalFormat(this, "rpId", "non-empty-string");
-            checkOptionalType(this, "allowCredentials", Array);
-            if (this.allowCredentials) checkCredentialDescriptorList(this.allowCredentials);
-            if (this.userVerification) checkUserVerification(this.userVerification);
-            checkOptionalType(this, "extensions", Object);
-        }
-    }
-
-    class CredentialAssertion extends Msg {
-        constructor() {
-            super();
-
-            this.propList = [
-                "rawId",
-                "response"
-            ];
-        }
-
-        validate() {
-            checkFormat(this, "rawId", "base64url");
-            checkType(this, "response", Object);
-            checkFormat(this.response, "authenticatorData", "base64url");
-            checkFormat(this.response, "clientDataJSON", "base64url");
-            checkFormat(this.response, "signature", "base64url");
-            checkOptionalFormat(this.response, "userHandle", "nullable-string");
-        }
-    }
-
-    // 1a. ServerPublicKeyCredentialCreationOptionsRequest
-    // 1b. ServerPublicKeyCredentialCreationOptions
-    // 2a. ServerPublicKeyCredentialAttestation
-    // 2b. ServerResponse
-    // 3a. ServerPublicKeyCredentialGetOptionsRequest
-    // 3b. ServerPublicKeyCredentialGetOptions
-    // 4a. ServerPublicKeyCredentialAssertion
-    // 4b. ServerResponse
-
-    class WebAuthnOptions extends Msg {
-        constructor() {
-            super();
-
-            this.propList = [
-                "timeout"
-            ];
-        }
-
-        merge(dst, preferDst) {
-            var i;
-            for (i = 0; i < this.propList.length; i++) {
-                var prop = this.propList[i];
-                // copy property if it isn't set
-                if (this[prop] === undefined) this[prop] = dst[prop];
-                // if the destination is set and we prefer that, copy it over
-                if (preferDst && dst[prop] !== undefined) this[prop] = dst[prop];
-            }
-        }
-    }
-
     // exports
     exp.defaultRoutes = {
         attestationOptions: "/attestation/options",
@@ -433,6 +714,8 @@
         assertionOptions: "/assertion/options",
         assertionResult: "/assertion/result"
     };
+    exp.coerceToBase64Url = coerceToBase64Url;
+    exp.coerceToArrayBuffer = coerceToArrayBuffer;
     exp.Msg = Msg;
     exp.ServerResponse = ServerResponse;
     exp.CreationOptionsRequest = CreationOptionsRequest;
@@ -531,10 +814,6 @@
         this.username = config.username;
         this.debug = function() {};
     }
-
-    WebAuthnApp.prototype.debug = function() {
-        this.debug = console.log;
-    };
 
     WebAuthnApp.prototype.register = function() {
         fireDebug("webauthn-register-start");
@@ -713,35 +992,27 @@
 
     WebAuthnApp.prototype.sendRegisterResponse = function(pkCred) {
         let encoding = "base64";
-        printHex("attestationObject", pkCred.response.attestationObject);
-        printHex("clientDataJSON", pkCred.response.clientDataJSON);
+        // console.log("pkCred");
+        // printHex("attestationObject", pkCred.response.attestationObject);
+        // printHex("clientDataJSON", pkCred.response.clientDataJSON);
         var msg = {
             binaryEncoding: encoding,
             username: this.username,
+            rawId: encodeBuffer(pkCred.rawId, encoding),
             id: encodeBuffer(pkCred.rawId, encoding),
             response: {
                 attestationObject: encodeBuffer(pkCred.response.attestationObject, encoding),
                 clientDataJSON: encodeBuffer(pkCred.response.clientDataJSON, encoding)
             }
         };
-
-        console.log("msg", msg);
+        msg = CredentialAttestation.from(msg);
 
         return this.send(
             this.registerResponseMethod,
             this.registerResponseEndpoint,
-            msg
-        ).then(function(res) {
-            if (res.status === 200) {
-                res.response.status = "ok";
-                return res.response;
-            }
-        }).catch(function(err) {
-            return {
-                status: "failed",
-                errorMessage: err
-            };
-        });
+            msg,
+            ServerResponse
+        );
     };
 
     WebAuthnApp.prototype.getLoginChallenge = function() {
@@ -762,6 +1033,7 @@
         var msg = {
             binaryEncoding: encoding,
             username: this.username,
+            rawId: encodeBuffer(assn.rawId, encoding),
             id: encodeBuffer(assn.rawId, encoding),
             response: {
                 clientDataJSON: encodeBuffer(assn.response.clientDataJSON, encoding),
@@ -808,27 +1080,16 @@
         return new Promise(function(resolve, reject) {
             var xhr = new XMLHttpRequest();
             function rejectWithFailed(errorMessage) {
-                var result = ServerResponse.from({
-                    status: "failed",
-                    errorMessage: errorMessage
-                });
-                return reject(result);
+                return reject(new Error(errorMessage));
             }
 
             xhr.open(method, url, true);
             xhr.setRequestHeader("Content-type", "application/json; charset=utf-8");
             xhr.onload = function() {
-
-                var response;
-                fireDebug("response", xhr);
-                try {
-                    response = JSON.parse(xhr.responseText);
-                } catch (err) {
-                    return rejectWithFailed("error parsing JSON response: '" + xhr.responseText + "'");
-                }
-
-                var msg = responseConstructor.from(response[0]);
-                msg.status = "ok";
+                fireDebug("response-raw", {
+                    status: xhr.status,
+                    body: xhr.responseText
+                });
 
                 if (xhr.status !== 200) {
                     return rejectWithFailed("server returned status: " + xhr.status);
@@ -838,14 +1099,29 @@
                     return rejectWithFailed("server returned ready state: " + xhr.readyState);
                 }
 
+                var response;
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch (err) {
+                    return rejectWithFailed("error parsing JSON response: '" + xhr.responseText + "'");
+                }
+
+                var msg = responseConstructor.from(response[0]);
+
+                if (msg.status === "failed") {
+                    return rejectWithFailed(msg.errorMessage);
+                }
+
                 try {
                     msg.validate();
                 } catch (err) {
-                    console.log("validation err:", err.message);
                     return rejectWithFailed(err.message);
                 }
 
-                console.log("resolving");
+                fireDebug("response-validated", {
+                    status: xhr.status,
+                    body: xhr.responseText
+                });
                 return resolve(msg);
             };
             xhr.onerror = function() {
@@ -856,52 +1132,6 @@
             xhr.send(data.toString());
         });
     };
-
-    // utility functions
-    function ab2str(buf) {
-        return String.fromCharCode.apply(null, new Uint8Array(buf));
-    }
-
-    function str2ab(str) {
-        var buf = new ArrayBuffer(str.length); // 2 bytes for each char
-        var bufView = new Uint8Array(buf);
-        for (var i = 0, strLen = str.length; i < strLen; i++) {
-            bufView[i] = str.charCodeAt(i);
-        }
-        return buf;
-    }
-
-    function decodeString(str, encoding) {
-        function isHex(str) {
-            return !str.match(/[^\da-f]+/gi);
-        }
-
-        function hex2ab(str) {
-            return new Uint8Array(str.match(/[\da-f]{2}/gi).map(function(h) {
-                return parseInt(h, 16);
-            })).buffer;
-        }
-
-        function isBase64(str) {
-            return !!str.match(/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$/g);
-        }
-
-        function base64_2ab(str) {
-            var u8a = Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
-            printHex("base64_2ab", u8a.buffer);
-            return u8a.buffer;
-        }
-
-        if (encoding === "hex" || isHex(str)) return hex2ab(str);
-        if (encoding === "base64" || isBase64(str)) return base64_2ab(str);
-        throw new TypeError("format of string unknown: " + str);
-    }
-
-    function encodeBuffer(ab, encoding) {
-        if (encoding === "hex") return Array.prototype.map.call(new Uint8Array(ab), (x) => ("00" + x.toString(16)).slice(-2)).join("");
-        if (encoding === "base64") return btoa(String.fromCharCode.apply(null, new Uint8Array(ab)));
-        throw new TypeError("unknown encoding in encodeBuffer: " + encoding);
-    }
 
     function printHex(msg, buf) {
         // if the buffer was a TypedArray (e.g. Uint8Array), grab its buffer and use that

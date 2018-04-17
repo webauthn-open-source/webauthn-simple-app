@@ -1,5 +1,5 @@
 /* globals chai, assert, fido2Helpers
-   defaultRoutes, Msg, ServerResponse,
+   defaultRoutes, coerceToBase64Url, coerceToArrayBuffer, Msg, ServerResponse,
    CreationOptionsRequest, CreationOptions,
    CredentialAttestation,
    GetOptionsRequest, GetOptions,
@@ -15,6 +15,8 @@ if (typeof module === "object" && module.exports) {
     global.fido2Helpers = require("fido2-helpers"); // eslint-disable-line global-require
     const {
         defaultRoutes,
+        coerceToBase64Url,
+        coerceToArrayBuffer,
         Msg,
         ServerResponse,
         CreationOptionsRequest,
@@ -26,6 +28,8 @@ if (typeof module === "object" && module.exports) {
         WebAuthnOptions
     } = require("../../webauthn-simple-app"); // eslint-disable-line global-require
     global.defaultRoutes = defaultRoutes;
+    global.coerceToBase64Url = coerceToBase64Url;
+    global.coerceToArrayBuffer = coerceToArrayBuffer;
     global.Msg = Msg;
     global.ServerResponse = ServerResponse;
     global.CreationOptionsRequest = CreationOptionsRequest;
@@ -68,6 +72,156 @@ describe("defaultRoutes", function() {
 
 });
 
+describe("coerceToBase64Url", function() {
+    it("exists", function() {
+        assert.isFunction(coerceToBase64Url);
+    });
+
+    it("coerce ArrayBuffer to base64url", function() {
+        var ab = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]).buffer;
+        var res = coerceToBase64Url(ab);
+        assert.isString(res);
+        assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
+    });
+
+    it("coerce Uint8Array to base64url", function() {
+        var buf = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]);
+        var res = coerceToBase64Url(buf);
+        assert.isString(res);
+        assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
+    });
+
+    it("coerce Array to base64url", function() {
+        var arr = [
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ];
+        var res = coerceToBase64Url(arr);
+        assert.isString(res);
+        assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
+    });
+
+    it("coerce base64 to base64url", function() {
+        var b64 = "AAECAwQFBgcJCgsMDQ4/+A==";
+        var res = coerceToBase64Url(b64);
+        assert.isString(res);
+        assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
+    });
+
+    it("coerce base64url to base64url", function() {
+        var b64url = "AAECAwQFBgcJCgsMDQ4_-A";
+        var res = coerceToBase64Url(b64url);
+        assert.isString(res);
+        assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
+    });
+
+    it("throws on incompatible: number", function() {
+        assert.throws(function() {
+            coerceToBase64Url(42, "test.number");
+        }, Error, "could not coerce 'test.number' to string");
+    });
+
+    it("throws on incompatible: undefined", function() {
+        assert.throws(function() {
+            coerceToBase64Url(undefined, "test.number");
+        }, Error, "could not coerce 'test.number' to string");
+    });
+});
+
+describe("coerceToArrayBuffer", function() {
+    it("exists", function() {
+        assert.isFunction(coerceToArrayBuffer);
+    });
+
+    it("coerce base64url to ArrayBuffer", function() {
+        var b64url = "AAECAwQFBgcJCgsMDQ4_-A";
+        var res = coerceToArrayBuffer(b64url);
+        assert.instanceOf(res, ArrayBuffer);
+        var expectedAb = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]).buffer;
+        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+    });
+
+    it("coerce base64 to ArrayBuffer", function() {
+        var b64 = "AAECAwQFBgcJCgsMDQ4/+A==";
+        var res = coerceToArrayBuffer(b64);
+        assert.instanceOf(res, ArrayBuffer);
+        var expectedAb = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]).buffer;
+        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+    });
+
+    it("coerce Array to ArrayBuffer", function() {
+        var arr = [
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ];
+        var res = coerceToArrayBuffer(arr);
+        assert.instanceOf(res, ArrayBuffer);
+        var expectedAb = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]).buffer;
+        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+    });
+
+    it("coerce Uint8Array to ArrayBuffer", function() {
+        var buf = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]);
+        var res = coerceToArrayBuffer(buf);
+        assert.instanceOf(res, ArrayBuffer);
+        var expectedAb = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]).buffer;
+        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+    });
+
+    it("coerce ArrayBuffer to ArrayBuffer", function() {
+        var ab = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]).buffer;
+        var res = coerceToArrayBuffer(ab);
+        assert.instanceOf(res, ArrayBuffer);
+        var expectedAb = Uint8Array.from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
+        ]).buffer;
+        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+    });
+
+    it("throws on incompatible: number", function() {
+        assert.throws(function() {
+            coerceToArrayBuffer(42, "test.number");
+        }, Error, "could not coerce 'test.number' to ArrayBuffer");
+    });
+
+    it("throws on incompatible: undefined", function() {
+        assert.throws(function() {
+            coerceToArrayBuffer(undefined, "test.number");
+        }, Error, "could not coerce 'test.number' to ArrayBuffer");
+    });
+
+    it("throws on incompatible: object", function() {
+        assert.throws(function() {
+            coerceToArrayBuffer({}, "test.number");
+        }, Error, "could not coerce 'test.number' to ArrayBuffer");
+    });
+});
+
 describe("Msg", function() {
     class TestClass extends Msg {
         constructor() {
@@ -105,7 +259,7 @@ describe("Msg", function() {
         it("throws on no arguments", function() {
             assert.throws(function() {
                 TestClass.from();
-            }, TypeError, "couldn't coerce 'json' argument to an object");
+            }, TypeError, "could not coerce 'json' argument to an object");
         });
 
         it("throws on bad string", function() {
@@ -263,6 +417,24 @@ describe("ServerResponse", function() {
             }, Error, "expected 'errorMessage' to be 'string', got: undefined");
         });
     });
+
+    describe("decodeBinaryProperties", function() {
+        it("doesn't throw", function() {
+            var msg = ServerResponse.from({
+                status: "failed",
+            });
+            msg.decodeBinaryProperties();
+        });
+    });
+
+    describe("encodeBinaryProperties", function() {
+        it("doesn't throw", function() {
+            var msg = ServerResponse.from({
+                status: "failed",
+            });
+            msg.encodeBinaryProperties();
+        });
+    });
 });
 
 describe("CreationOptionsRequest", function() {
@@ -332,6 +504,20 @@ describe("CreationOptionsRequest", function() {
             assert.throws(function() {
                 msg.validate();
             }, Error, "expected 'displayName' to be non-empty string");
+        });
+    });
+
+    describe("decodeBinaryProperties", function() {
+        it("doesn't throw", function() {
+            var msg = CreationOptionsRequest.from(fido2Helpers.server.creationOptionsRequest);
+            msg.decodeBinaryProperties();
+        });
+    });
+
+    describe("encodeBinaryProperties", function() {
+        it("doesn't throw", function() {
+            var msg = CreationOptionsRequest.from(fido2Helpers.server.creationOptionsRequest);
+            msg.encodeBinaryProperties();
         });
     });
 });
@@ -683,6 +869,41 @@ describe("CreationOptions", function() {
             }, Error, "expected 'extensions' to be 'Object', got: hi");
         });
     });
+
+    describe("decodeBinaryProperties", function() {
+        it("decodes correct fields", function() {
+            var msg = CreationOptions.from(fido2Helpers.server.completeCreationOptions);
+            assert.isString(msg.user.id);
+            assert.isString(msg.challenge);
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.user.id, ArrayBuffer);
+            assert.instanceOf(msg.challenge, ArrayBuffer);
+            assert.strictEqual(msg.excludeCredentials.length, 1);
+            msg.excludeCredentials.forEach(function(cred) {
+                assert.instanceOf(cred.id, ArrayBuffer);
+            });
+        });
+    });
+
+    describe("encodeBinaryProperties", function() {
+        it("encodes correct fields", function() {
+            var msg = CreationOptions.from(fido2Helpers.server.completeCreationOptions);
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.user.id, ArrayBuffer);
+            assert.instanceOf(msg.challenge, ArrayBuffer);
+            assert.strictEqual(msg.excludeCredentials.length, 1);
+            msg.excludeCredentials.forEach(function(cred) {
+                assert.instanceOf(cred.id, ArrayBuffer);
+            });
+            msg.encodeBinaryProperties();
+            assert.isString(msg.user.id);
+            assert.isString(msg.challenge);
+            assert.strictEqual(msg.excludeCredentials.length, 1);
+            msg.excludeCredentials.forEach(function(cred) {
+                assert.isString(cred.id);
+            });
+        });
+    });
 });
 
 describe("CredentialAttestation", function() {
@@ -867,6 +1088,33 @@ describe("CredentialAttestation", function() {
             }, Error, "expected 'clientDataJSON' to be base64url format, got: ");
         });
     });
+
+    describe("decodeBinaryProperties", function() {
+        it("decodes correct fields", function() {
+            var msg = CredentialAttestation.from(fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
+            assert.isString(msg.rawId);
+            assert.isString(msg.response.attestationObject);
+            assert.isString(msg.response.clientDataJSON);
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.rawId, ArrayBuffer);
+            assert.instanceOf(msg.response.attestationObject, ArrayBuffer);
+            assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
+        });
+    });
+
+    describe("encodeBinaryProperties", function() {
+        it("encodes correct fields", function() {
+            var msg = CredentialAttestation.from(fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.rawId, ArrayBuffer);
+            assert.instanceOf(msg.response.attestationObject, ArrayBuffer);
+            assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
+            msg.encodeBinaryProperties();
+            assert.isString(msg.rawId);
+            assert.isString(msg.response.attestationObject);
+            assert.isString(msg.response.clientDataJSON);
+        });
+    });
 });
 
 describe("GetOptionsRequest", function() {
@@ -936,6 +1184,20 @@ describe("GetOptionsRequest", function() {
             assert.throws(function() {
                 msg.validate();
             }, Error, "expected 'displayName' to be non-empty string");
+        });
+    });
+
+    describe("decodeBinaryProperties", function() {
+        it("doesn't throw", function() {
+            var msg = GetOptionsRequest.from(fido2Helpers.server.getOptionsRequest);
+            msg.decodeBinaryProperties();
+        });
+    });
+
+    describe("encodeBinaryProperties", function() {
+        it("doesn't throw", function() {
+            var msg = GetOptionsRequest.from(fido2Helpers.server.getOptionsRequest);
+            msg.encodeBinaryProperties();
         });
     });
 });
@@ -1154,6 +1416,37 @@ describe("GetOptions", function() {
             }, Error, "expected 'extensions' to be 'Object', got: foo");
         });
     });
+
+    describe("decodeBinaryProperties", function() {
+        it("decodes correct fields", function() {
+            var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
+            assert.isString(msg.challenge);
+            msg.allowCredentials.forEach(function(cred) {
+                assert.isString(cred.id);
+            });
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.challenge, ArrayBuffer);
+            msg.allowCredentials.forEach(function(cred) {
+                assert.instanceOf(cred.id, ArrayBuffer);
+            });
+        });
+    });
+
+    describe("encodeBinaryProperties", function() {
+        it("encodes correct fields", function() {
+            var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.challenge, ArrayBuffer);
+            msg.allowCredentials.forEach(function(cred) {
+                assert.instanceOf(cred.id, ArrayBuffer);
+            });
+            msg.encodeBinaryProperties();
+            assert.isString(msg.challenge);
+            msg.allowCredentials.forEach(function(cred) {
+                assert.isString(cred.id);
+            });
+        });
+    });
 });
 
 describe("CredentialAssertion", function() {
@@ -1339,6 +1632,37 @@ describe("CredentialAssertion", function() {
             assert.throws(function() {
                 msg.validate();
             }, Error, "expected 'userHandle' to be null or string");
+        });
+    });
+
+    describe("decodeBinaryProperties", function() {
+        it("decodes correct fields", function() {
+            var msg = CredentialAssertion.from(fido2Helpers.server.assertionResponseMsgB64Url);
+            assert.isString(msg.rawId);
+            assert.isString(msg.response.clientDataJSON);
+            assert.isString(msg.response.signature);
+            assert.isString(msg.response.authenticatorData);
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.rawId, ArrayBuffer);
+            assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
+            assert.instanceOf(msg.response.signature, ArrayBuffer);
+            assert.instanceOf(msg.response.authenticatorData, ArrayBuffer);
+        });
+    });
+
+    describe("encodeBinaryProperties", function() {
+        it("encodes correct fields", function() {
+            var msg = CredentialAssertion.from(fido2Helpers.server.assertionResponseMsgB64Url);
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.rawId, ArrayBuffer);
+            assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
+            assert.instanceOf(msg.response.signature, ArrayBuffer);
+            assert.instanceOf(msg.response.authenticatorData, ArrayBuffer);
+            msg.encodeBinaryProperties();
+            assert.isString(msg.rawId);
+            assert.isString(msg.response.clientDataJSON);
+            assert.isString(msg.response.signature);
+            assert.isString(msg.response.authenticatorData);
         });
     });
 });

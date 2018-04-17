@@ -30,4 +30,8 @@ describe("WebAuthnApp", function() {
         assert.isFunction(GetOptions);
         assert.isFunction(CredentialAssertion);
     });
+
+    it("can coerce base64 to Buffer");
+    it("can coerce Buffer to base64");
+    it("coerceToArrayBuffer doesn't return Buffer");
 });
