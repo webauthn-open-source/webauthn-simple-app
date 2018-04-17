@@ -2,9 +2,4 @@
 
 [![Sauce Test Status](https://saucelabs.com/browser-matrix/apowers313.svg)](https://saucelabs.com/u/apowers313)
 
-Work in progress. Do not use.
-
-TODO:
-
-6. [Create](https://github.com/settings/tokens) `GH_TOKEN` and add to Travis CI build
-7. [Get SauceLabs token](https://saucelabs.com/beta/user-settings) and set `SAUCE_ACCESS_KEY` and `SAUCE_USERNAME` in Travis CI
+Documentation coming soon.
