@@ -452,7 +452,9 @@
             }
 
             // Uint8Array, etc. to ArrayBuffer
-            if (thing.buffer instanceof ArrayBuffer && !(thing instanceof Buffer)) {
+            if (typeof thing === "object" &&
+                thing.buffer instanceof ArrayBuffer &&
+                !(thing instanceof Buffer)) {
                 thing = thing.buffer;
             }
 

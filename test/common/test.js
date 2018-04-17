@@ -305,14 +305,14 @@ describe("Msg", function() {
         });
     });
 
-    describe("toPrettyString", function() {
+    describe("toHumanString", function() {
         it("converts object to string", function() {
             var msg = TestClass.from({
                 username: "adam",
                 displayName: "Adam Powers"
             });
 
-            var str = msg.toPrettyString();
+            var str = msg.toHumanString();
             assert.isString(str);
             assert.strictEqual(str, "{\n    \"username\": \"adam\",\n    \"displayName\": \"Adam Powers\"\n}");
         });
