@@ -1604,28 +1604,27 @@ describe("CredentialAssertion", function() {
             }, Error, "expected 'signature' to be 'string', got: object");
         });
 
-        it("passes on missing userhandle", function() {
+        it("passes on missing userHandle", function() {
             delete testArgs.response.userHandle;
             var msg = CredentialAssertion.from(testArgs);
 
             msg.validate();
         });
 
-        it("passes on null userhandle", function() {
-            delete testArgs.response.userHandle;
+        it("passes on null userHandle", function() {
+            testArgs.response.userHandle = null;
             var msg = CredentialAssertion.from(testArgs);
 
             msg.validate();
         });
 
-        it("passes on empty userhandle", function() {
+        it("passes on empty userHandle", function() {
             testArgs.response.userHandle = "";
             var msg = CredentialAssertion.from(testArgs);
-
             msg.validate();
         });
 
-        it("throws on wrong type userhandle", function() {
+        it("throws on wrong type userHandle", function() {
             testArgs.response.userHandle = 42;
             var msg = CredentialAssertion.from(testArgs);
 
@@ -1642,11 +1641,13 @@ describe("CredentialAssertion", function() {
             assert.isString(msg.response.clientDataJSON);
             assert.isString(msg.response.signature);
             assert.isString(msg.response.authenticatorData);
+            assert.isNull(msg.response.userHandle);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.rawId, ArrayBuffer);
             assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
             assert.instanceOf(msg.response.signature, ArrayBuffer);
             assert.instanceOf(msg.response.authenticatorData, ArrayBuffer);
+            assert.instanceOf(msg.response.userHandle, ArrayBuffer);
         });
     });
 
@@ -1658,11 +1659,13 @@ describe("CredentialAssertion", function() {
             assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
             assert.instanceOf(msg.response.signature, ArrayBuffer);
             assert.instanceOf(msg.response.authenticatorData, ArrayBuffer);
+            assert.instanceOf(msg.response.userHandle, ArrayBuffer);
             msg.encodeBinaryProperties();
             assert.isString(msg.rawId);
             assert.isString(msg.response.clientDataJSON);
             assert.isString(msg.response.signature);
             assert.isString(msg.response.authenticatorData);
+            assert.isNull(msg.response.userHandle);
         });
     });
 });
