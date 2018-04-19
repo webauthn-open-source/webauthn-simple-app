@@ -37,6 +37,6 @@
     "jsdoc": "^3.5.5",
     "mocha": "^3.2.0",
     "docdash": "^0.4.0",
-    "fido2-helpers": "^1.1.0"
+    "fido2-helpers": "^1.1.1"
   }
 }
