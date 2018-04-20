@@ -839,293 +839,277 @@
         }
     }
 
-    function WebAuthnResult(opt) {
-        var success = true;
-        var msg = opt;
-        var err = null;
-
-        if (opt instanceof Error) {
-            success = false;
-            msg = opt.message;
-            err = opt;
-        }
-
-        return {
-            success: success,
-            msg: msg,
-            err: err
-        };
-    }
-
     /**
      * The main class for registering and logging in via WebAuthn. This class wraps all server communication,
      * as well as calls to `credentials.navigator.create()` (registration) and `credentials.navigator.get()` (login)
      * @param {Object} config The configuration object for WebAuthnApp
      */
-    function WebAuthnApp(config) {
+    class WebAuthnApp {
+        constructor(config) {
 
         // configure or defaults
-        config = config || {};
-        this.registerChallengeEndpoint = config.registerChallengeEndpoint || "/webauthn/register/challenge";
-        this.registerResponseEndpoint = config.registerResponseEndpoint || "/webauthn/register/response";
-        this.loginChallengeEndpoint = config.loginChallengeEndpoint || "/webauthn/login/challenge";
-        this.loginResponseEndpoint = config.loginResponseEndpoint || "/webauthn/login/response";
-        this.registerChallengeMethod = config.registerChallengeMethod || "POST";
-        this.registerResponseMethod = config.registerResponseMethod || "POST";
-        this.loginChallengeMethod = config.loginChallengeMethod || "POST";
-        this.loginResponseMethod = config.loginResponseMethod || "POST";
-        this.timeout = config.timeout || 60000; // one minute
-        this.alg = config.alg || coseAlgECDSAWithSHA256;
-        this.binaryEncoding = config.binaryEncoding;
-        // TODO: relying party name
-        this.appName = config.appName || window.location.hostname;
-        this.username = config.username;
-        this.debug = function() {};
-    }
-
-    WebAuthnApp.prototype.register = function() {
-        fireRegister("start");
-        // get challenge
-        return this.getRegisterChallenge()
-            .then((serverMsg) => this.webAuthnCreate(serverMsg))
-            .then((newCred) => this.sendRegisterResponse(newCred))
-            .then((msg) => {
-                fireRegister("success");
-                return msg;
-            })
-            .catch(function(err) {
-                fireRegister("error", err);
-                return Promise.reject(err);
-            });
-    };
-
-    WebAuthnApp.prototype.login = function() {
-        fireLogin("start");
-        var self = this;
-        // get challenge
-        return this.getLoginChallenge()
-            .then((serverMsg) => self.webAuthnGet(serverMsg))
-            .then((assn) => self.sendLoginResponse(assn))
-            .then(function(msg) {
-                fireLogin("success");
-                return msg;
-            })
-            .catch(function(err) {
-                fireLogin("error", err);
-                return Promise.reject(err);
-            });
-    };
-
-    WebAuthnApp.prototype.webAuthnCreate = function(options) {
-        if (!(options instanceof CreationOptions)) {
-            throw new Error("expected 'options' to be instance of CreationOptions");
-        }
-        options.decodeBinaryProperties();
-
-        var args = {
-            publicKey: options.toObject()
-        };
-        delete args.publicKey.status;
-        delete args.publicKey.errorMsg;
-
-        fireUserPresence("start");
-        fireDebug("create-options", args);
-
-        return navigator.credentials.create(args)
-            .then(function(res) {
-                fireUserPresence("done");
-                fireDebug("create-result", res);
-                return res;
-            })
-            .catch(function(err) {
-                fireUserPresence("done");
-                fireDebug("create-failed", err);
-                return Promise.reject(err);
-            });
-    };
-
-    WebAuthnApp.prototype.webAuthnGet = function(options) {
-        if (!(options instanceof GetOptions)) {
-            throw new Error("expected 'options' to be instance of GetOptions");
-        }
-        options.decodeBinaryProperties();
-
-        var args = {
-            publicKey: options.toObject()
-        };
-        delete args.publicKey.status;
-        delete args.publicKey.errorMsg;
-
-        fireUserPresence("start");
-        fireDebug("get-options", args);
-
-        return navigator.credentials.get(args)
-            .then(function(res) {
-                fireUserPresence("done");
-                fireDebug("get-result", res);
-                return res;
-            })
-            .catch(function(err) {
-                fireUserPresence("done");
-                fireDebug("get-failed", err);
-                return Promise.reject(err);
-            });
-    };
-
-    WebAuthnApp.prototype.getRegisterChallenge = function() {
-        var sendData = CreationOptionsRequest.from({
-            username: this.username,
-            displayName: this.displayName || this.username
-        });
-
-        return this.send(
-            this.registerChallengeMethod,
-            this.registerChallengeEndpoint,
-            sendData,
-            CreationOptions
-        );
-    };
-
-    WebAuthnApp.prototype.sendRegisterResponse = function(pkCred) {
-        if (!(pkCred instanceof window.PublicKeyCredential)) {
-            throw new Error("expected 'pkCred' to be instance of PublicKeyCredential");
+            config = config || {};
+            this.registerChallengeEndpoint = config.registerChallengeEndpoint || "/webauthn/register/challenge";
+            this.registerResponseEndpoint = config.registerResponseEndpoint || "/webauthn/register/response";
+            this.loginChallengeEndpoint = config.loginChallengeEndpoint || "/webauthn/login/challenge";
+            this.loginResponseEndpoint = config.loginResponseEndpoint || "/webauthn/login/response";
+            this.registerChallengeMethod = config.registerChallengeMethod || "POST";
+            this.registerResponseMethod = config.registerResponseMethod || "POST";
+            this.loginChallengeMethod = config.loginChallengeMethod || "POST";
+            this.loginResponseMethod = config.loginResponseMethod || "POST";
+            this.timeout = config.timeout || 60000; // one minute
+            this.alg = config.alg || coseAlgECDSAWithSHA256;
+            this.binaryEncoding = config.binaryEncoding;
+            // TODO: relying party name
+            this.appName = config.appName || window.location.hostname;
+            this.username = config.username;
+            this.debug = function() {};
         }
 
-        var sendData = CredentialAttestation.from({
-            username: this.username,
-            rawId: pkCred.rawId,
-            id: pkCred.rawId,
-            response: {
-                attestationObject: pkCred.response.attestationObject,
-                clientDataJSON: pkCred.response.clientDataJSON
+        register() {
+            fireRegister("start");
+            // get challenge
+            return this.getRegisterChallenge()
+                .then((serverMsg) => this.webAuthnCreate(serverMsg))
+                .then((newCred) => this.sendRegisterResponse(newCred))
+                .then((msg) => {
+                    fireRegister("success");
+                    return msg;
+                })
+                .catch(function(err) {
+                    fireRegister("error", err);
+                    return Promise.reject(err);
+                });
+        }
+
+        login() {
+            fireLogin("start");
+            var self = this;
+            // get challenge
+            return this.getLoginChallenge()
+                .then((serverMsg) => self.webAuthnGet(serverMsg))
+                .then((assn) => self.sendLoginResponse(assn))
+                .then(function(msg) {
+                    fireLogin("success");
+                    return msg;
+                })
+                .catch(function(err) {
+                    fireLogin("error", err);
+                    return Promise.reject(err);
+                });
+        }
+
+        webAuthnCreate(options) {
+            if (!(options instanceof CreationOptions)) {
+                throw new Error("expected 'options' to be instance of CreationOptions");
             }
-        });
+            options.decodeBinaryProperties();
 
-        return this.send(
-            this.registerResponseMethod,
-            this.registerResponseEndpoint,
-            sendData,
-            ServerResponse
-        );
-    };
+            var args = {
+                publicKey: options.toObject()
+            };
+            delete args.publicKey.status;
+            delete args.publicKey.errorMsg;
 
-    WebAuthnApp.prototype.getLoginChallenge = function() {
-        var sendData = GetOptionsRequest.from({
-            username: this.username,
-            displayName: this.displayname || this.username
-        });
+            fireUserPresence("start");
+            fireDebug("create-options", args);
 
-        return this.send(
-            this.loginChallengeMethod,
-            this.loginChallengeEndpoint,
-            sendData,
-            GetOptions
-        );
-    };
-
-    WebAuthnApp.prototype.sendLoginResponse = function(assn) {
-        if (!(assn instanceof window.PublicKeyCredential)) {
-            throw new Error("expected 'assn' to be instance of PublicKeyCredential");
+            return navigator.credentials.create(args)
+                .then(function(res) {
+                    fireUserPresence("done");
+                    fireDebug("create-result", res);
+                    return res;
+                })
+                .catch(function(err) {
+                    fireUserPresence("done");
+                    fireDebug("create-failed", err);
+                    return Promise.reject(err);
+                });
         }
 
-        var msg = CredentialAssertion.from(assn);
+        webAuthnGet(options) {
+            if (!(options instanceof GetOptions)) {
+                throw new Error("expected 'options' to be instance of GetOptions");
+            }
+            options.decodeBinaryProperties();
 
-        return this.send(
-            this.loginResponseMethod,
-            this.loginResponseEndpoint,
-            msg,
-            ServerResponse
-        );
-    };
+            var args = {
+                publicKey: options.toObject()
+            };
+            delete args.publicKey.status;
+            delete args.publicKey.errorMsg;
 
-    WebAuthnApp.prototype.send = function(method, url, data, responseConstructor) {
+            fireUserPresence("start");
+            fireDebug("get-options", args);
+
+            return navigator.credentials.get(args)
+                .then(function(res) {
+                    fireUserPresence("done");
+                    fireDebug("get-result", res);
+                    return res;
+                })
+                .catch(function(err) {
+                    fireUserPresence("done");
+                    fireDebug("get-failed", err);
+                    return Promise.reject(err);
+                });
+        }
+
+        getRegisterChallenge() {
+            var sendData = CreationOptionsRequest.from({
+                username: this.username,
+                displayName: this.displayName || this.username
+            });
+
+            return this.send(
+                this.registerChallengeMethod,
+                this.registerChallengeEndpoint,
+                sendData,
+                CreationOptions
+            );
+        }
+
+        sendRegisterResponse(pkCred) {
+            if (!(pkCred instanceof window.PublicKeyCredential)) {
+                throw new Error("expected 'pkCred' to be instance of PublicKeyCredential");
+            }
+
+            var sendData = CredentialAttestation.from({
+                username: this.username,
+                rawId: pkCred.rawId,
+                id: pkCred.rawId,
+                response: {
+                    attestationObject: pkCred.response.attestationObject,
+                    clientDataJSON: pkCred.response.clientDataJSON
+                }
+            });
+
+            return this.send(
+                this.registerResponseMethod,
+                this.registerResponseEndpoint,
+                sendData,
+                ServerResponse
+            );
+        }
+
+        getLoginChallenge() {
+            var sendData = GetOptionsRequest.from({
+                username: this.username,
+                displayName: this.displayname || this.username
+            });
+
+            return this.send(
+                this.loginChallengeMethod,
+                this.loginChallengeEndpoint,
+                sendData,
+                GetOptions
+            );
+        }
+
+        sendLoginResponse(assn) {
+            if (!(assn instanceof window.PublicKeyCredential)) {
+                throw new Error("expected 'assn' to be instance of PublicKeyCredential");
+            }
+
+            var msg = CredentialAssertion.from(assn);
+
+            return this.send(
+                this.loginResponseMethod,
+                this.loginResponseEndpoint,
+                msg,
+                ServerResponse
+            );
+        }
+
+        send(method, url, data, responseConstructor) {
         // check args
-        if (method !== "POST") {
-            return Promise.reject(new Error("why not POST your data?"));
-        }
-
-        if (typeof url !== "string") {
-            return Promise.reject(new Error("expected 'url' to be 'string', got: " + typeof url));
-        }
-
-        if (!(data instanceof Msg)) {
-            return Promise.reject(new Error("expected 'data' to be instance of 'Msg'"));
-        }
-
-        if (typeof responseConstructor !== "function") {
-            return Promise.reject(new Error("expected 'responseConstructor' to be 'function', got: " + typeof responseConstructor));
-        }
-
-        // convert binary properties (if any) to strings
-        data.encodeBinaryProperties();
-
-        // validate the data we're sending
-        try {
-            data.validate();
-        } catch (err) {
-            // console.log("validation error", err);
-            return Promise.reject(err);
-        }
-
-        // TODO: maybe some day upgrade to fetch(); have to change the mock in the tests too
-        return new Promise(function(resolve, reject) {
-            var xhr = new XMLHttpRequest();
-            function rejectWithFailed(errorMessage) {
-                fireDebug("send-error", new Error(errorMessage));
-                return reject(new Error(errorMessage));
+            if (method !== "POST") {
+                return Promise.reject(new Error("why not POST your data?"));
             }
 
-            xhr.open(method, url, true);
-            xhr.setRequestHeader("Content-type", "application/json; charset=utf-8");
-            xhr.onload = function() {
-                fireDebug("response-raw", {
-                    status: xhr.status,
-                    body: xhr.responseText
-                });
+            if (typeof url !== "string") {
+                return Promise.reject(new Error("expected 'url' to be 'string', got: " + typeof url));
+            }
 
-                if (xhr.status !== 200) {
-                    return rejectWithFailed("server returned status: " + xhr.status);
+            if (!(data instanceof Msg)) {
+                return Promise.reject(new Error("expected 'data' to be instance of 'Msg'"));
+            }
+
+            if (typeof responseConstructor !== "function") {
+                return Promise.reject(new Error("expected 'responseConstructor' to be 'function', got: " + typeof responseConstructor));
+            }
+
+            // convert binary properties (if any) to strings
+            data.encodeBinaryProperties();
+
+            // validate the data we're sending
+            try {
+                data.validate();
+            } catch (err) {
+            // console.log("validation error", err);
+                return Promise.reject(err);
+            }
+
+            // TODO: maybe some day upgrade to fetch(); have to change the mock in the tests too
+            return new Promise(function(resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                function rejectWithFailed(errorMessage) {
+                    fireDebug("send-error", new Error(errorMessage));
+                    return reject(new Error(errorMessage));
                 }
 
-                if (xhr.readyState !== 4) {
-                    return rejectWithFailed("server returned ready state: " + xhr.readyState);
-                }
+                xhr.open(method, url, true);
+                xhr.setRequestHeader("Content-type", "application/json; charset=utf-8");
+                xhr.onload = function() {
+                    fireDebug("response-raw", {
+                        status: xhr.status,
+                        body: xhr.responseText
+                    });
 
-                var response;
-                try {
-                    response = JSON.parse(xhr.responseText);
-                } catch (err) {
-                    return rejectWithFailed("error parsing JSON response: '" + xhr.responseText + "'");
-                }
+                    if (xhr.status !== 200) {
+                        return rejectWithFailed("server returned status: " + xhr.status);
+                    }
 
-                var msg = responseConstructor.from(response[0]);
+                    if (xhr.readyState !== 4) {
+                        return rejectWithFailed("server returned ready state: " + xhr.readyState);
+                    }
 
-                if (msg.status === "failed") {
-                    return rejectWithFailed(msg.errorMessage);
-                }
+                    var response;
+                    try {
+                        response = JSON.parse(xhr.responseText);
+                    } catch (err) {
+                        return rejectWithFailed("error parsing JSON response: '" + xhr.responseText + "'");
+                    }
 
-                try {
-                    msg.validate();
-                } catch (err) {
-                    return rejectWithFailed(err.message);
-                }
+                    var msg = responseConstructor.from(response[0]);
 
-                fireDebug("response", {
-                    status: xhr.status,
-                    body: msg
-                });
-                return resolve(msg);
-            };
-            xhr.onerror = function() {
-                return rejectWithFailed("POST to URL failed:" + url);
-            };
-            fireDebug("send", data);
+                    if (msg.status === "failed") {
+                        return rejectWithFailed(msg.errorMessage);
+                    }
 
-            data = data.toString();
-            fireDebug("send-raw", data);
-            xhr.send(data);
-        });
-    };
+                    try {
+                        msg.validate();
+                    } catch (err) {
+                        return rejectWithFailed(err.message);
+                    }
+
+                    fireDebug("response", {
+                        status: xhr.status,
+                        body: msg
+                    });
+                    return resolve(msg);
+                };
+                xhr.onerror = function() {
+                    return rejectWithFailed("POST to URL failed:" + url);
+                };
+                fireDebug("send", data);
+
+                data = data.toString();
+                fireDebug("send-raw", data);
+                xhr.send(data);
+            });
+        }
+    }
 
     function printHex(msg, buf) {
         // if the buffer was a TypedArray (e.g. Uint8Array), grab its buffer and use that
