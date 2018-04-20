@@ -228,7 +228,7 @@
 
             checkFormat(this, "challenge", "base64url");
             checkType(this, "pubKeyCredParams", Array);
-            this.pubKeyCredParams.forEach(function(cred) {
+            this.pubKeyCredParams.forEach((cred) => {
                 checkType(cred, "alg", "number");
                 checkTrue(cred.type === "public-key", "credential type must be 'public-key'");
             });
@@ -250,7 +250,7 @@
             this.challenge = coerceToArrayBuffer(this.challenge, "challenge");
 
             if (this.excludeCredentials) {
-                this.excludeCredentials.forEach(function (cred, idx) {
+                this.excludeCredentials.forEach((cred, idx) => {
                     cred.id = coerceToArrayBuffer(cred.id, "excludeCredentials[" + idx + "].id");
                 });
             }
@@ -264,7 +264,7 @@
             this.challenge = coerceToBase64Url(this.challenge, "challenge");
 
             if (this.excludeCredentials) {
-                this.excludeCredentials.forEach(function (cred, idx) {
+                this.excludeCredentials.forEach((cred, idx) => {
                     cred.id = coerceToBase64Url(cred.id, "excludeCredentials[" + idx + "].id");
                 });
             }
@@ -362,7 +362,7 @@
         decodeBinaryProperties() {
             this.challenge = coerceToArrayBuffer(this.challenge, "challenge");
             if (this.allowCredentials) {
-                this.allowCredentials.forEach(function (cred) {
+                this.allowCredentials.forEach((cred) => {
                     cred.id = coerceToArrayBuffer(cred.id, "cred.id");
                 });
             }
@@ -371,7 +371,7 @@
         encodeBinaryProperties() {
             this.challenge = coerceToBase64Url(this.challenge, "challenge");
             if (this.allowCredentials) {
-                this.allowCredentials.forEach(function (cred, idx) {
+                this.allowCredentials.forEach((cred, idx) => {
                     cred.id = coerceToBase64Url(cred.id, "allowCredentials[" + idx + "].id");
                 });
             }
@@ -705,11 +705,11 @@
     }
 
     function checkCredentialDescriptorList(arr) {
-        arr.forEach(function(cred) {
+        arr.forEach((cred) => {
             checkFormat(cred, "id", "base64url");
             checkTrue(cred.type === "public-key", "credential type must be 'public-key'");
             checkOptionalType(cred, "transports", Array);
-            if (cred.transports) cred.transports.forEach(function(trans) {
+            if (cred.transports) cred.transports.forEach((trans) => {
                 checkTrue(
                     ["usb", "nfc", "ble"].includes(trans),
                     "expected transport to be 'usb', 'nfc', or 'ble', got: " + trans
@@ -760,7 +760,7 @@
         throw err;
     }
 
-    window.addEventListener("load", function(event) {
+    window.addEventListener("load", (event) => {
         // check for secure context
         var eNotSupported;
         if (!window.isSecureContext) {
@@ -776,68 +776,6 @@
             // delete window.WebAuthnApp;
         }
     });
-
-    function fireEvent(type, data) {
-        var e = new CustomEvent(type, { detail: data || null });
-        document.dispatchEvent(e);
-    }
-
-    function fireNotSupported(reason) {
-        fireEvent("webauthn-not-supported", reason);
-        fireDebug("not-supported", reason);
-    }
-
-    function fireDebug(subtype, data) {
-        fireEvent("webauthn-debug", {
-            subtype: subtype,
-            data: data
-        });
-    }
-
-    function fireUserPresence(state) {
-        switch (state) {
-            case "start":
-                return fireEvent("webauthn-user-presence-start");
-            case "done":
-                return fireEvent("webauthn-user-presence-done");
-            default:
-                throw new Error("unknown 'state' in fireUserPresence");
-        }
-    }
-
-    function fireRegister(state, data) {
-        switch (state) {
-            case "start":
-                return fireEvent("webauthn-register-start");
-            case "done":
-                return fireEvent("webauthn-register-done");
-            case "error":
-                fireEvent("webauthn-register-done");
-                return fireEvent("webauthn-register-error", data);
-            case "success":
-                fireEvent("webauthn-register-done");
-                return fireEvent("webauthn-register-success", data);
-            default:
-                throw new Error("unknown 'state' in fireRegister");
-        }
-    }
-
-    function fireLogin(state, data) {
-        switch (state) {
-            case "start":
-                return fireEvent("webauthn-login-start");
-            case "done":
-                return fireEvent("webauthn-login-done");
-            case "error":
-                fireEvent("webauthn-login-done");
-                return fireEvent("webauthn-login-error", data);
-            case "success":
-                fireEvent("webauthn-login-done");
-                return fireEvent("webauthn-login-success", data);
-            default:
-                throw new Error("unknown 'state' in fireLogin");
-        }
-    }
 
     /**
      * The main class for registering and logging in via WebAuthn. This class wraps all server communication,
@@ -863,7 +801,6 @@
             // TODO: relying party name
             this.appName = config.appName || window.location.hostname;
             this.username = config.username;
-            this.debug = function() {};
         }
 
         register() {
@@ -876,7 +813,7 @@
                     fireRegister("success");
                     return msg;
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     fireRegister("error", err);
                     return Promise.reject(err);
                 });
@@ -889,11 +826,11 @@
             return this.getLoginChallenge()
                 .then((serverMsg) => self.webAuthnGet(serverMsg))
                 .then((assn) => self.sendLoginResponse(assn))
-                .then(function(msg) {
+                .then((msg) => {
                     fireLogin("success");
                     return msg;
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     fireLogin("error", err);
                     return Promise.reject(err);
                 });
@@ -915,12 +852,12 @@
             fireDebug("create-options", args);
 
             return navigator.credentials.create(args)
-                .then(function(res) {
+                .then((res) => {
                     fireUserPresence("done");
                     fireDebug("create-result", res);
                     return res;
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     fireUserPresence("done");
                     fireDebug("create-failed", err);
                     return Promise.reject(err);
@@ -1108,6 +1045,68 @@
                 fireDebug("send-raw", data);
                 xhr.send(data);
             });
+        }
+    }
+
+    function fireEvent(type, data) {
+        var e = new CustomEvent(type, { detail: data || null });
+        document.dispatchEvent(e);
+    }
+
+    function fireNotSupported(reason) {
+        fireEvent("webauthn-not-supported", reason);
+        fireDebug("not-supported", reason);
+    }
+
+    function fireDebug(subtype, data) {
+        fireEvent("webauthn-debug", {
+            subtype: subtype,
+            data: data
+        });
+    }
+
+    function fireUserPresence(state) {
+        switch (state) {
+            case "start":
+                return fireEvent("webauthn-user-presence-start");
+            case "done":
+                return fireEvent("webauthn-user-presence-done");
+            default:
+                throw new Error("unknown 'state' in fireUserPresence");
+        }
+    }
+
+    function fireRegister(state, data) {
+        switch (state) {
+            case "start":
+                return fireEvent("webauthn-register-start");
+            case "done":
+                return fireEvent("webauthn-register-done");
+            case "error":
+                fireEvent("webauthn-register-done");
+                return fireEvent("webauthn-register-error", data);
+            case "success":
+                fireEvent("webauthn-register-done");
+                return fireEvent("webauthn-register-success", data);
+            default:
+                throw new Error("unknown 'state' in fireRegister");
+        }
+    }
+
+    function fireLogin(state, data) {
+        switch (state) {
+            case "start":
+                return fireEvent("webauthn-login-start");
+            case "done":
+                return fireEvent("webauthn-login-done");
+            case "error":
+                fireEvent("webauthn-login-done");
+                return fireEvent("webauthn-login-error", data);
+            case "success":
+                fireEvent("webauthn-login-done");
+                return fireEvent("webauthn-login-success", data);
+            default:
+                throw new Error("unknown 'state' in fireLogin");
         }
     }
 
