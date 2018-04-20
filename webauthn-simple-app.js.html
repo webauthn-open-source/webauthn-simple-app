@@ -437,7 +437,7 @@
             checkFormat(this.response, "authenticatorData", "base64url");
             checkFormat(this.response, "clientDataJSON", "base64url");
             checkFormat(this.response, "signature", "base64url");
-            checkOptionalFormat(this.response, "userHandle", "nullable-string");
+            checkOptionalFormat(this.response, "userHandle", "nullable-base64");
         }
 
         decodeBinaryProperties() {
@@ -445,6 +445,12 @@
             this.response.clientDataJSON = coerceToArrayBuffer(this.response.clientDataJSON, "response.clientDataJSON");
             this.response.signature = coerceToArrayBuffer(this.response.signature, "response.signature");
             this.response.authenticatorData = coerceToArrayBuffer(this.response.authenticatorData, "response.authenticatorData");
+            if (this.response.userHandle) {
+                this.response.userHandle = coerceToArrayBuffer(this.response.userHandle, "response.authenticatorData");
+            }
+            if (this.response.userHandle === null) {
+                this.response.userHandle = new ArrayBuffer();
+            }
         }
 
         encodeBinaryProperties() {
@@ -452,6 +458,10 @@
             this.response.clientDataJSON = coerceToBase64Url(this.response.clientDataJSON, "response.clientDataJSON");
             this.response.signature = coerceToBase64Url(this.response.signature, "response.signature");
             this.response.authenticatorData = coerceToBase64Url(this.response.authenticatorData, "response.authenticatorData");
+            if (this.response.userHandle) {
+                if (this.response.userHandle.byteLength > 0) this.response.userHandle = coerceToBase64Url(this.response.userHandle, "response.authenticatorData");
+                else this.response.userHandle = null;
+            }
         }
     }
 
@@ -677,11 +687,17 @@
                     "expected '" + prop + "' to be positive integer"
                 );
                 break;
-            case "nullable-string":
+            case "nullable-base64":
                 var t = typeof obj[prop];
+                if (obj[prop] === null) t = "null";
                 checkTrue(
                     ["null", "string", "undefined"].includes(t),
                     "expected '" + prop + "' to be null or string"
+                );
+                if (!obj[prop]) return;
+                checkTrue(
+                    isBase64Url(obj[prop]),
+                    "expected '" + prop + "' to be base64url format, got: " + obj[prop]
                 );
                 break;
             default:
@@ -783,25 +799,25 @@
         throw err;
     }
 
-
     window.addEventListener("load", function(event) {
-        console.log("I'm loaded.");
         // check for secure context
         var eNotSupported;
         if (!window.isSecureContext) {
             fireNotSupported("This web page was not loaded in a secure context (https). Please try loading the page again using https or make sure you are using a browser with secure context support.");
-            return null;
+            // delete window.WebAuthnApp;
         }
 
         // check for WebAuthn CR features
-        if (typeof window.PublicKeyCredential !== "function" &amp;&amp; typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
+        if (window.PublicKeyCredential !== undefined &amp;&amp;
+            typeof window.PublicKeyCredential !== "function" &amp;&amp;
+            typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
             fireNotSupported("WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: &lt;a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility&lt;/a>");
-            return null;
+            // delete window.WebAuthnApp;
         }
     });
 
     function fireEvent(type, data) {
-        var e = new CustomEvent(type, { detail: data });
+        var e = new CustomEvent(type, { detail: data || null });
         document.dispatchEvent(e);
     }
 
@@ -815,6 +831,51 @@
             subtype: subtype,
             data: data
         });
+    }
+
+    function fireUserPresence(state) {
+        switch (state) {
+            case "start":
+                return fireEvent("webauthn-user-presence-start");
+            case "done":
+                return fireEvent("webauthn-user-presence-done");
+            default:
+                throw new Error("unknown 'state' in fireUserPresence");
+        }
+    }
+
+    function fireRegister(state, data) {
+        switch (state) {
+            case "start":
+                return fireEvent("webauthn-register-start");
+            case "done":
+                return fireEvent("webauthn-register-done");
+            case "error":
+                fireEvent("webauthn-register-done");
+                return fireEvent("webauthn-register-error", data);
+            case "success":
+                fireEvent("webauthn-register-done");
+                return fireEvent("webauthn-register-success", data);
+            default:
+                throw new Error("unknown 'state' in fireRegister");
+        }
+    }
+
+    function fireLogin(state, data) {
+        switch (state) {
+            case "start":
+                return fireEvent("webauthn-login-start");
+            case "done":
+                return fireEvent("webauthn-login-done");
+            case "error":
+                fireEvent("webauthn-login-done");
+                return fireEvent("webauthn-login-error", data);
+            case "success":
+                fireEvent("webauthn-login-done");
+                return fireEvent("webauthn-login-success", data);
+            default:
+                throw new Error("unknown 'state' in fireLogin");
+        }
     }
 
     function WebAuthnResult(opt) {
@@ -835,6 +896,11 @@
         };
     }
 
+    /**
+     * The main class for registering and logging in via WebAuthn. This class wraps all server communication,
+     * as well as calls to `credentials.navigator.create()` (registration) and `credentials.navigator.get()` (login)
+     * @param {Object} config The configuration object for WebAuthnApp
+     */
     function WebAuthnApp(config) {
 
         // configure or defaults
@@ -857,164 +923,92 @@
     }
 
     WebAuthnApp.prototype.register = function() {
-        fireDebug("webauthn-register-start");
-        var self = this;
+        fireRegister("start");
         // get challenge
         return this.getRegisterChallenge()
-            .then(function(serverMsg) {
-                console.log("serverMsg", serverMsg);
-                if (serverMsg.status != 200) {
-                    throw new Error("Server responded with status: " + serverMsg.errorMsg);
-                }
-                if (!serverMsg.response || !serverMsg.response.challenge) {
-                    throw new Error("Malformatted server response: " + serverMsg);
-                }
-
-                // call webauthn
-                return self.webAuthnCreate(serverMsg.response);
-            })
-            .then(function(newCred) {
-                fireEvent("webauthn-user-presence-done");
-                fireDebug("create-result", newCred);
-
-                // send response
-                return self.sendRegisterResponse(newCred);
-            })
-            .then(function(msg) {
-                console.log("RESPONSE:", msg);
-
-                var result = new WebAuthnResult("You are now registered.");
-                console.log("result");
-                var eRegComplete = new CustomEvent("webauthn-register-complete", { detail: result });
-                document.dispatchEvent(eRegComplete);
-
-                // console.log("msg.status !== 200", msg.status !== 200);
-                // console.log("!msg.response.success", !msg.response.success);
-                if (msg.status != 200 || !msg.response.success) {
-                    throw new Error("registration failed: " + msg.errorMsg);
-                }
-
+            .then((serverMsg) => this.webAuthnCreate(serverMsg))
+            .then((newCred) => this.sendRegisterResponse(newCred))
+            .then((msg) => {
+                fireRegister("success");
                 return msg;
             })
             .catch(function(err) {
-                console.log("REGISTER FAILED!\n", err);
-                var eRegComplete = new CustomEvent("webauthn-register-complete", { detail: new WebAuthnResult(err) });
-                document.dispatchEvent(eRegComplete);
-            })
-            .finally(function() {
-                fireDebug("webauthn-register-done");
+                fireRegister("error", err);
+                return Promise.reject(err);
             });
     };
 
     WebAuthnApp.prototype.login = function() {
-        fireDebug("webauthn-login-start");
+        fireLogin("start");
         var self = this;
         // get challenge
         return this.getLoginChallenge()
-            .then(function(serverMsg) {
-                console.log("serverMsg", serverMsg);
-                if (serverMsg.status != 200) {
-                    throw new Error("Server responded with status: " + serverMsg.errorMsg);
-                }
-                if (!serverMsg.response || !serverMsg.response.challenge) {
-                    throw new Error("Malformatted server response: " + serverMsg);
-                }
-
-                // call webauthn
-                return self.webAuthnGet(serverMsg.response);
-            })
-            .then(function(assn) {
-                var eRegDone = new CustomEvent("webauthn-user-presence-done");
-                document.dispatchEvent(eRegDone);
-
-                // send response
-                return self.sendLoginResponse(assn);
-            })
+            .then((serverMsg) => self.webAuthnGet(serverMsg))
+            .then((assn) => self.sendLoginResponse(assn))
             .then(function(msg) {
-                console.log("RESPONSE:", msg);
-
-                var eLoginComplete = new CustomEvent("webauthn-login-complete", { detail: new WebAuthnResult("You are now logged in.") });
-                document.dispatchEvent(eLoginComplete);
-
-                if (msg.status != 200 || !msg.response.success) {
-                    throw new Error("registration failed: " + msg.errorMsg);
-                }
-
+                fireLogin("success");
                 return msg;
             })
             .catch(function(err) {
-                console.log("LOGIN FAILED!\n", err);
-                fireDebug("");
-                var eLoginComplete = new CustomEvent("webauthn-login-complete", { detail: new WebAuthnResult(err) });
-                document.dispatchEvent(eLoginComplete);
-            })
-            .finally(function() {
-                fireDebug("webauthn-login-done");
+                fireLogin("error", err);
+                return Promise.reject(err);
             });
     };
 
-    WebAuthnApp.prototype.webAuthnCreate = function(serverResponse) {
-        console.log("server response", serverResponse);
-        var options = {
-            publicKey: {
-                rp: {
-                    id: serverResponse.serverDomain,
-                    name: serverResponse.serverName || this.appName,
-                    icon: serverResponse.serverIcon || this.icon
-                },
-                user: {
-                    id: str2ab(serverResponse.userId || serverResponse.username || this.username),
-                    name: serverResponse.username || this.username,
-                    displayName: serverResponse.displayName || serverResponse.username || this.username,
-                    icon: serverResponse.userIcon
-                },
-                challenge: decodeString(serverResponse.challenge, serverResponse.binaryEncoding || this.binaryEncoding),
-                pubKeyCredParams: [{
-                    type: "public-key",
-                    alg: serverResponse.alg || this.alg
-                }],
-                timeout: serverResponse.timeout || this.timeout,
-                attestation: serverResponse.attestation || this.attestation || "indirect"
-                // excludeCredentials
-                // authenticatorSelection
-                // extensions
-            }
+    WebAuthnApp.prototype.webAuthnCreate = function(options) {
+        if (!(options instanceof CreationOptions)) {
+            throw new Error("expected 'options' to be instance of CreationOptions");
+        }
+        options.decodeBinaryProperties();
+
+        var args = {
+            publicKey: options.toObject()
         };
-        // TODO: other options (excludeCredentials, extensions, algorithmList instead of alg, etc)\
+        delete args.publicKey.status;
+        delete args.publicKey.errorMsg;
 
-        console.log("credentials.create options:", options);
-        printHex("challenge", options.publicKey.challenge);
-        printHex("user.id", options.publicKey.user.id);
+        fireUserPresence("start");
+        fireDebug("create-options", args);
 
-        var eRegStart = new CustomEvent("webauthn-user-presence-start");
-        document.dispatchEvent(eRegStart);
-
-        return navigator.credentials.create(options);
+        return navigator.credentials.create(args)
+            .then(function(res) {
+                fireUserPresence("done");
+                fireDebug("create-result", res);
+                return res;
+            })
+            .catch(function(err) {
+                fireUserPresence("done");
+                fireDebug("create-failed", err);
+                return Promise.reject(err);
+            });
     };
 
-    WebAuthnApp.prototype.webAuthnGet = function(serverResponse) {
-        var idList = serverResponse.credIdList;
-        console.log("idList before", idList);
-        idList = idList.map((id) => ({
-            type: "public-key",
-            id: decodeString(id, serverResponse.binaryEncoding || this.binaryEncoding)
-        }));
+    WebAuthnApp.prototype.webAuthnGet = function(options) {
+        if (!(options instanceof GetOptions)) {
+            throw new Error("expected 'options' to be instance of GetOptions");
+        }
+        options.decodeBinaryProperties();
 
-        console.log("ID LIST", idList);
-        var options = {
-            publicKey: {
-                challenge: decodeString(serverResponse.challenge, serverResponse.binaryEncoding || this.binaryEncoding),
-                timeout: serverResponse.timeout || this.timeout,
-                // rpId
-                allowCredentials: idList
-                // userVerfification
-                // extensions
-            }
+        var args = {
+            publicKey: options.toObject()
         };
+        delete args.publicKey.status;
+        delete args.publicKey.errorMsg;
 
-        fireEvent("webauthn-user-presence-start");
-        fireDebug("user-presence-start", options);
-        return navigator.credentials.get(options);
+        fireUserPresence("start");
+        fireDebug("get-options", args);
+
+        return navigator.credentials.get(args)
+            .then(function(res) {
+                fireUserPresence("done");
+                fireDebug("get-result", res);
+                return res;
+            })
+            .catch(function(err) {
+                fireUserPresence("done");
+                fireDebug("get-failed", err);
+                return Promise.reject(err);
+            });
     };
 
     WebAuthnApp.prototype.getRegisterChallenge = function() {
@@ -1032,62 +1026,54 @@
     };
 
     WebAuthnApp.prototype.sendRegisterResponse = function(pkCred) {
-        let encoding = "base64";
-        // console.log("pkCred");
-        // printHex("attestationObject", pkCred.response.attestationObject);
-        // printHex("clientDataJSON", pkCred.response.clientDataJSON);
-        var msg = {
-            binaryEncoding: encoding,
+        if (!(pkCred instanceof window.PublicKeyCredential)) {
+            throw new Error("expected 'pkCred' to be instance of PublicKeyCredential");
+        }
+
+        var sendData = CredentialAttestation.from({
             username: this.username,
-            rawId: encodeBuffer(pkCred.rawId, encoding),
-            id: encodeBuffer(pkCred.rawId, encoding),
+            rawId: pkCred.rawId,
+            id: pkCred.rawId,
             response: {
-                attestationObject: encodeBuffer(pkCred.response.attestationObject, encoding),
-                clientDataJSON: encodeBuffer(pkCred.response.clientDataJSON, encoding)
+                attestationObject: pkCred.response.attestationObject,
+                clientDataJSON: pkCred.response.clientDataJSON
             }
-        };
-        msg = CredentialAttestation.from(msg);
+        });
 
         return this.send(
             this.registerResponseMethod,
             this.registerResponseEndpoint,
-            msg,
+            sendData,
             ServerResponse
         );
     };
 
     WebAuthnApp.prototype.getLoginChallenge = function() {
-        var sendData = {
-            username: this.username
-        };
+        var sendData = GetOptionsRequest.from({
+            username: this.username,
+            displayName: this.displayname || this.username
+        });
 
         return this.send(
             this.loginChallengeMethod,
             this.loginChallengeEndpoint,
-            sendData
+            sendData,
+            GetOptions
         );
     };
 
     WebAuthnApp.prototype.sendLoginResponse = function(assn) {
-        var encoding = "base64";
+        if (!(assn instanceof window.PublicKeyCredential)) {
+            throw new Error("expected 'assn' to be instance of PublicKeyCredential");
+        }
 
-        var msg = {
-            binaryEncoding: encoding,
-            username: this.username,
-            rawId: encodeBuffer(assn.rawId, encoding),
-            id: encodeBuffer(assn.rawId, encoding),
-            response: {
-                clientDataJSON: encodeBuffer(assn.response.clientDataJSON, encoding),
-                authenticatorData: encodeBuffer(assn.response.authenticatorData, encoding),
-                signature: encodeBuffer(assn.response.signature, encoding),
-                userHandle: encodeBuffer(assn.response.userHandle, encoding)
-            }
-        };
+        var msg = CredentialAssertion.from(assn);
 
         return this.send(
             this.loginResponseMethod,
             this.loginResponseEndpoint,
-            msg
+            msg,
+            ServerResponse
         );
     };
 
@@ -1109,11 +1095,14 @@
             return Promise.reject(new Error("expected 'responseConstructor' to be 'function', got: " + typeof responseConstructor));
         }
 
+        // convert binary properties (if any) to strings
+        data.encodeBinaryProperties();
+
         // validate the data we're sending
         try {
             data.validate();
         } catch (err) {
-            console.log("validation error", err);
+            // console.log("validation error", err);
             return Promise.reject(err);
         }
 
@@ -1121,6 +1110,7 @@
         return new Promise(function(resolve, reject) {
             var xhr = new XMLHttpRequest();
             function rejectWithFailed(errorMessage) {
+                fireDebug("send-error", new Error(errorMessage));
                 return reject(new Error(errorMessage));
             }
 
@@ -1159,18 +1149,20 @@
                     return rejectWithFailed(err.message);
                 }
 
-                fireDebug("response-validated", {
+                fireDebug("response", {
                     status: xhr.status,
-                    body: xhr.responseText
+                    body: msg
                 });
                 return resolve(msg);
             };
             xhr.onerror = function() {
-                fireDebug("response", new Error("failed due to unspecified error"));
                 return rejectWithFailed("POST to URL failed:" + url);
             };
             fireDebug("send", data);
-            xhr.send(data.toString());
+
+            data = data.toString();
+            fireDebug("send-raw", data);
+            xhr.send(data);
         });
     };
 
@@ -1225,7 +1217,7 @@
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Apr 17 2018 06:12:43 GMT+0000 (UTC) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Fri Apr 20 2018 03:17:09 GMT+0000 (UTC) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>
