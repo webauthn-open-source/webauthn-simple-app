@@ -4,8 +4,8 @@ const assert = require("chai").assert;
 const {
     Msg,
     ServerResponse,
-    CreationOptionsRequest,
-    CreationOptions,
+    CreateOptionsRequest,
+    CreateOptions,
     CredentialAttestation,
     GetOptionsRequest,
     GetOptions,
@@ -23,8 +23,8 @@ describe("WebAuthnApp", function() {
     it("can load", function() {
         assert.isFunction(Msg);
         assert.isFunction(ServerResponse);
-        assert.isFunction(CreationOptionsRequest);
-        assert.isFunction(CreationOptions);
+        assert.isFunction(CreateOptionsRequest);
+        assert.isFunction(CreateOptions);
         assert.isFunction(CredentialAttestation);
         assert.isFunction(GetOptionsRequest);
         assert.isFunction(GetOptions);

@@ -1,6 +1,6 @@
 /* globals chai, assert, fido2Helpers
-   defaultRoutes, coerceToBase64Url, coerceToArrayBuffer, Msg, ServerResponse,
-   CreationOptionsRequest, CreationOptions,
+   WebAuthnHelpers, Msg, ServerResponse,
+   CreateOptionsRequest, CreateOptions,
    CredentialAttestation,
    GetOptionsRequest, GetOptions,
    CredentialAssertion,
@@ -14,30 +14,26 @@ if (typeof module === "object" && module.exports) {
     global.assert = require("chai").assert; // eslint-disable-line global-require
     global.fido2Helpers = require("fido2-helpers"); // eslint-disable-line global-require
     const {
-        defaultRoutes,
-        coerceToBase64Url,
-        coerceToArrayBuffer,
+        WebAuthnHelpers,
         Msg,
         ServerResponse,
-        CreationOptionsRequest,
-        CreationOptions,
+        CreateOptionsRequest,
+        CreateOptions,
         CredentialAttestation,
         GetOptionsRequest,
         GetOptions,
         CredentialAssertion,
         WebAuthnOptions
     } = require("../../webauthn-simple-app"); // eslint-disable-line global-require
-    global.defaultRoutes = defaultRoutes;
-    global.coerceToBase64Url = coerceToBase64Url;
-    global.coerceToArrayBuffer = coerceToArrayBuffer;
+    global.WebAuthnHelpers = WebAuthnHelpers;
     global.Msg = Msg;
     global.ServerResponse = ServerResponse;
-    global.CreationOptionsRequest = CreationOptionsRequest;
-    global.CreationOptions = CreationOptions;
+    global.CreateOptionsRequest = CreateOptionsRequest;
+    global.CreateOptions = CreateOptions;
     global.CredentialAttestation = CredentialAttestation;
     global.GetOptionsRequest = GetOptionsRequest;
     global.GetOptions = GetOptions;
-    global.CreationOptionsRequest = CreationOptionsRequest;
+    global.CreateOptionsRequest = CreateOptionsRequest;
     global.CredentialAssertion = CredentialAssertion;
     global.WebAuthnOptions = WebAuthnOptions;
 } else {
@@ -46,38 +42,41 @@ if (typeof module === "object" && module.exports) {
     mocha.setup("bdd");
 }
 
-describe("defaultRoutes", function() {
-    it("is object", function() {
+describe("defaultRoutes", () => {
+    var defaultRoutes = WebAuthnHelpers.defaultRoutes;
+    it("is object", () => {
         assert.isObject(defaultRoutes);
     });
 
-    it("has attestationOptions", function() {
+    it("has attestationOptions", () => {
         assert.isString(defaultRoutes.attestationOptions);
         assert.strictEqual(defaultRoutes.attestationOptions, "/attestation/options");
     });
-    it("has attestationResult", function() {
+    it("has attestationResult", () => {
         assert.isString(defaultRoutes.attestationResult);
         assert.strictEqual(defaultRoutes.attestationResult, "/attestation/result");
     });
 
-    it("has assertionOptions", function() {
+    it("has assertionOptions", () => {
         assert.isString(defaultRoutes.assertionOptions);
         assert.strictEqual(defaultRoutes.assertionOptions, "/assertion/options");
     });
 
-    it("has assertionResult", function() {
+    it("has assertionResult", () => {
         assert.isString(defaultRoutes.assertionResult);
         assert.strictEqual(defaultRoutes.assertionResult, "/assertion/result");
     });
 
 });
 
-describe("coerceToBase64Url", function() {
-    it("exists", function() {
+describe("coerceToBase64Url", () => {
+    var coerceToBase64Url = WebAuthnHelpers.utils.coerceToBase64Url;
+
+    it("exists", () => {
         assert.isFunction(coerceToBase64Url);
     });
 
-    it("coerce ArrayBuffer to base64url", function() {
+    it("coerce ArrayBuffer to base64url", () => {
         var ab = Uint8Array.from([
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
@@ -87,7 +86,7 @@ describe("coerceToBase64Url", function() {
         assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
     });
 
-    it("coerce Uint8Array to base64url", function() {
+    it("coerce Uint8Array to base64url", () => {
         var buf = Uint8Array.from([
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
@@ -97,7 +96,7 @@ describe("coerceToBase64Url", function() {
         assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
     });
 
-    it("coerce Array to base64url", function() {
+    it("coerce Array to base64url", () => {
         var arr = [
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
@@ -107,39 +106,41 @@ describe("coerceToBase64Url", function() {
         assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
     });
 
-    it("coerce base64 to base64url", function() {
+    it("coerce base64 to base64url", () => {
         var b64 = "AAECAwQFBgcJCgsMDQ4/+A==";
         var res = coerceToBase64Url(b64);
         assert.isString(res);
         assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
     });
 
-    it("coerce base64url to base64url", function() {
+    it("coerce base64url to base64url", () => {
         var b64url = "AAECAwQFBgcJCgsMDQ4_-A";
         var res = coerceToBase64Url(b64url);
         assert.isString(res);
         assert.strictEqual(res, "AAECAwQFBgcJCgsMDQ4_-A");
     });
 
-    it("throws on incompatible: number", function() {
-        assert.throws(function() {
+    it("throws on incompatible: number", () => {
+        assert.throws(() => {
             coerceToBase64Url(42, "test.number");
         }, Error, "could not coerce 'test.number' to string");
     });
 
-    it("throws on incompatible: undefined", function() {
-        assert.throws(function() {
+    it("throws on incompatible: undefined", () => {
+        assert.throws(() => {
             coerceToBase64Url(undefined, "test.number");
         }, Error, "could not coerce 'test.number' to string");
     });
 });
 
-describe("coerceToArrayBuffer", function() {
-    it("exists", function() {
+describe("coerceToArrayBuffer", () => {
+    var coerceToArrayBuffer = WebAuthnHelpers.utils.coerceToArrayBuffer;
+
+    it("exists", () => {
         assert.isFunction(coerceToArrayBuffer);
     });
 
-    it("coerce base64url to ArrayBuffer", function() {
+    it("coerce base64url to ArrayBuffer", () => {
         var b64url = "AAECAwQFBgcJCgsMDQ4_-A";
         var res = coerceToArrayBuffer(b64url);
         assert.instanceOf(res, ArrayBuffer);
@@ -150,7 +151,7 @@ describe("coerceToArrayBuffer", function() {
         assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
-    it("coerce base64 to ArrayBuffer", function() {
+    it("coerce base64 to ArrayBuffer", () => {
         var b64 = "AAECAwQFBgcJCgsMDQ4/+A==";
         var res = coerceToArrayBuffer(b64);
         assert.instanceOf(res, ArrayBuffer);
@@ -161,7 +162,7 @@ describe("coerceToArrayBuffer", function() {
         assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
-    it("coerce Array to ArrayBuffer", function() {
+    it("coerce Array to ArrayBuffer", () => {
         var arr = [
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
@@ -175,7 +176,7 @@ describe("coerceToArrayBuffer", function() {
         assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
-    it("coerce Uint8Array to ArrayBuffer", function() {
+    it("coerce Uint8Array to ArrayBuffer", () => {
         var buf = Uint8Array.from([
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
@@ -189,7 +190,7 @@ describe("coerceToArrayBuffer", function() {
         assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
-    it("coerce ArrayBuffer to ArrayBuffer", function() {
+    it("coerce ArrayBuffer to ArrayBuffer", () => {
         var ab = Uint8Array.from([
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
@@ -203,26 +204,26 @@ describe("coerceToArrayBuffer", function() {
         assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
-    it("throws on incompatible: number", function() {
-        assert.throws(function() {
+    it("throws on incompatible: number", () => {
+        assert.throws(() => {
             coerceToArrayBuffer(42, "test.number");
         }, Error, "could not coerce 'test.number' to ArrayBuffer");
     });
 
-    it("throws on incompatible: undefined", function() {
-        assert.throws(function() {
+    it("throws on incompatible: undefined", () => {
+        assert.throws(() => {
             coerceToArrayBuffer(undefined, "test.number");
         }, Error, "could not coerce 'test.number' to ArrayBuffer");
     });
 
-    it("throws on incompatible: object", function() {
-        assert.throws(function() {
+    it("throws on incompatible: object", () => {
+        assert.throws(() => {
             coerceToArrayBuffer({}, "test.number");
         }, Error, "could not coerce 'test.number' to ArrayBuffer");
     });
 });
 
-describe("Msg", function() {
+describe("Msg", () => {
     class TestClass extends Msg {
         constructor() {
             super();
@@ -231,9 +232,9 @@ describe("Msg", function() {
         }
     }
 
-    describe("from", function() {
+    describe("from", () => {
 
-        it("accepts object", function() {
+        it("accepts object", () => {
             var msg = TestClass.from({
                 username: "adam",
                 displayName: "Adam Powers"
@@ -244,7 +245,7 @@ describe("Msg", function() {
             assert.strictEqual(msg.displayName, "Adam Powers");
         });
 
-        it("accepts string", function() {
+        it("accepts string", () => {
             var json = JSON.stringify({
                 username: "adam",
                 displayName: "Adam Powers"
@@ -256,19 +257,19 @@ describe("Msg", function() {
             assert.strictEqual(msg.displayName, "Adam Powers");
         });
 
-        it("throws on no arguments", function() {
-            assert.throws(function() {
+        it("throws on no arguments", () => {
+            assert.throws(() => {
                 TestClass.from();
             }, TypeError, "could not coerce 'json' argument to an object");
         });
 
-        it("throws on bad string", function() {
-            assert.throws(function() {
+        it("throws on bad string", () => {
+            assert.throws(() => {
                 TestClass.from("this is a bad string");
             }, TypeError, "error parsing JSON string");
         });
 
-        it("accepts empty object", function() {
+        it("accepts empty object", () => {
             var msg = TestClass.from({});
             msg.propList = ["username", "displayName"];
 
@@ -278,8 +279,8 @@ describe("Msg", function() {
         });
     });
 
-    describe("toObject", function() {
-        it("converts to object", function() {
+    describe("toObject", () => {
+        it("converts to object", () => {
             var msg = TestClass.from({
                 username: "adam",
                 displayName: "Adam Powers"
@@ -292,8 +293,8 @@ describe("Msg", function() {
         });
     });
 
-    describe("toString", function() {
-        it("converts object to string", function() {
+    describe("toString", () => {
+        it("converts object to string", () => {
             var msg = TestClass.from({
                 username: "adam",
                 displayName: "Adam Powers"
@@ -305,8 +306,8 @@ describe("Msg", function() {
         });
     });
 
-    describe("toHumanString", function() {
-        it("converts object to string", function() {
+    describe("toHumanString", () => {
+        it("converts object to string", () => {
             var msg = TestClass.from({
                 username: "adam",
                 displayName: "Adam Powers"
@@ -319,23 +320,23 @@ describe("Msg", function() {
     });
 });
 
-describe("ServerResponse", function() {
-    it("is loaded", function() {
+describe("ServerResponse", () => {
+    it("is loaded", () => {
         assert.isFunction(ServerResponse);
     });
 
-    it("is Msg class", function() {
+    it("is Msg class", () => {
         var msg = new ServerResponse();
         assert.instanceOf(msg, Msg);
     });
 
-    it("has right properties", function() {
+    it("has right properties", () => {
         var msg = new ServerResponse();
 
         assert.deepEqual(msg.propList, ["status", "errorMessage"]);
     });
 
-    it("converts correctly", function() {
+    it("converts correctly", () => {
         var inputObj = {
             status: "ok",
             errorMessage: ""
@@ -347,8 +348,8 @@ describe("ServerResponse", function() {
         assert.deepEqual(outputObj, inputObj);
     });
 
-    describe("validate", function() {
-        it("accepts status ok", function() {
+    describe("validate", () => {
+        it("accepts status ok", () => {
             var msg = ServerResponse.from({
                 status: "ok",
                 errorMessage: ""
@@ -357,7 +358,7 @@ describe("ServerResponse", function() {
             msg.validate();
         });
 
-        it("accepts status ok with no errorMessage", function() {
+        it("accepts status ok with no errorMessage", () => {
             var msg = ServerResponse.from({
                 status: "ok",
             });
@@ -365,7 +366,7 @@ describe("ServerResponse", function() {
             msg.validate();
         });
 
-        it("accepts status failed", function() {
+        it("accepts status failed", () => {
             var msg = ServerResponse.from({
                 status: "failed",
                 errorMessage: "out of beer"
@@ -374,52 +375,52 @@ describe("ServerResponse", function() {
             msg.validate();
         });
 
-        it("throws on bad status", function() {
+        it("throws on bad status", () => {
             var msg = ServerResponse.from({
                 status: "foobar",
                 errorMessage: ""
             });
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'status' to be 'string', got: foobar");
         });
 
-        it("throws on ok with errorMessage", function() {
+        it("throws on ok with errorMessage", () => {
             var msg = ServerResponse.from({
                 status: "ok",
                 errorMessage: "there is no error"
             });
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "errorMessage must be empty string when status is 'ok'");
         });
 
-        it("throws on failed with empty errorMessage", function() {
+        it("throws on failed with empty errorMessage", () => {
             var msg = ServerResponse.from({
                 status: "failed",
                 errorMessage: ""
             });
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "errorMessage must be non-zero length when status is 'failed'");
         });
 
-        it("throws on failed without errorMessage", function() {
+        it("throws on failed without errorMessage", () => {
             var msg = ServerResponse.from({
                 status: "failed",
             });
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'errorMessage' to be 'string', got: undefined");
         });
     });
 
-    describe("decodeBinaryProperties", function() {
-        it("doesn't throw", function() {
+    describe("decodeBinaryProperties", () => {
+        it("doesn't throw", () => {
             var msg = ServerResponse.from({
                 status: "failed",
             });
@@ -427,8 +428,8 @@ describe("ServerResponse", function() {
         });
     });
 
-    describe("encodeBinaryProperties", function() {
-        it("doesn't throw", function() {
+    describe("encodeBinaryProperties", () => {
+        it("doesn't throw", () => {
             var msg = ServerResponse.from({
                 status: "failed",
             });
@@ -437,486 +438,486 @@ describe("ServerResponse", function() {
     });
 });
 
-describe("CreationOptionsRequest", function() {
-    it("is loaded", function() {
-        assert.isFunction(CreationOptionsRequest);
+describe("CreateOptionsRequest", () => {
+    it("is loaded", () => {
+        assert.isFunction(CreateOptionsRequest);
     });
 
-    it("is Msg class", function() {
-        var msg = new CreationOptionsRequest();
+    it("is Msg class", () => {
+        var msg = new CreateOptionsRequest();
         assert.instanceOf(msg, Msg);
     });
 
-    it("converts correctly", function() {
+    it("converts correctly", () => {
         var inputObj = {
             username: "adam",
             displayName: "AdamPowers"
         };
-        var msg = CreationOptionsRequest.from(inputObj);
+        var msg = CreateOptionsRequest.from(inputObj);
 
         var outputObj = msg.toObject();
 
         assert.deepEqual(outputObj, inputObj);
     });
 
-    describe("validate", function() {
+    describe("validate", () => {
         var testArgs;
-        beforeEach(function() {
+        beforeEach(() => {
             testArgs = fido2Helpers.functions.cloneObject(fido2Helpers.server.creationOptionsRequest);
         });
 
-        it("passes with basic args", function() {
-            var msg = CreationOptionsRequest.from(testArgs);
+        it("passes with basic args", () => {
+            var msg = CreateOptionsRequest.from(testArgs);
             msg.validate();
         });
 
-        it("throws on missing username", function() {
+        it("throws on missing username", () => {
             delete testArgs.username;
-            var msg = CreationOptionsRequest.from(testArgs);
+            var msg = CreateOptionsRequest.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'username' to be 'string', got: undefined");
         });
 
-        it("throws on empty username", function() {
+        it("throws on empty username", () => {
             testArgs.username = "";
-            var msg = CreationOptionsRequest.from(testArgs);
+            var msg = CreateOptionsRequest.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'username' to be non-empty string");
         });
 
-        it("throws on missing displayName", function() {
+        it("throws on missing displayName", () => {
             delete testArgs.displayName;
-            var msg = CreationOptionsRequest.from(testArgs);
+            var msg = CreateOptionsRequest.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'displayName' to be 'string', got: undefined");
         });
 
-        it("throws on empty displayName", function() {
+        it("throws on empty displayName", () => {
             testArgs.displayName = "";
-            var msg = CreationOptionsRequest.from(testArgs);
+            var msg = CreateOptionsRequest.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'displayName' to be non-empty string");
         });
     });
 
-    describe("decodeBinaryProperties", function() {
-        it("doesn't throw", function() {
-            var msg = CreationOptionsRequest.from(fido2Helpers.server.creationOptionsRequest);
+    describe("decodeBinaryProperties", () => {
+        it("doesn't throw", () => {
+            var msg = CreateOptionsRequest.from(fido2Helpers.server.creationOptionsRequest);
             msg.decodeBinaryProperties();
         });
     });
 
-    describe("encodeBinaryProperties", function() {
-        it("doesn't throw", function() {
-            var msg = CreationOptionsRequest.from(fido2Helpers.server.creationOptionsRequest);
+    describe("encodeBinaryProperties", () => {
+        it("doesn't throw", () => {
+            var msg = CreateOptionsRequest.from(fido2Helpers.server.creationOptionsRequest);
             msg.encodeBinaryProperties();
         });
     });
 });
 
-describe("CreationOptions", function() {
-    it("is loaded", function() {
-        assert.isFunction(CreationOptions);
+describe("CreateOptions", () => {
+    it("is loaded", () => {
+        assert.isFunction(CreateOptions);
     });
 
-    it("is ServerResponse class", function() {
-        var msg = new CreationOptions();
+    it("is ServerResponse class", () => {
+        var msg = new CreateOptions();
         assert.instanceOf(msg, ServerResponse);
     });
 
-    it("converts correctly", function() {
-        var msg = CreationOptions.from(fido2Helpers.server.completeCreationOptions);
+    it("converts correctly", () => {
+        var msg = CreateOptions.from(fido2Helpers.server.completeCreationOptions);
 
         var outputObj = msg.toObject();
 
         assert.deepEqual(outputObj, fido2Helpers.server.completeCreationOptions);
     });
 
-    describe("validate", function() {
+    describe("validate", () => {
         var testArgs;
-        beforeEach(function() {
+        beforeEach(() => {
             testArgs = fido2Helpers.functions.cloneObject(fido2Helpers.server.completeCreationOptions);
         });
 
-        it("accepts basic CreationOptions", function() {
-            var msg = CreationOptions.from(fido2Helpers.server.basicCreationOptions);
+        it("accepts basic CreateOptions", () => {
+            var msg = CreateOptions.from(fido2Helpers.server.basicCreationOptions);
 
             msg.validate();
         });
 
-        it("accepts complete CreationOptions", function() {
-            var msg = CreationOptions.from(fido2Helpers.server.completeCreationOptions);
+        it("accepts complete CreateOptions", () => {
+            var msg = CreateOptions.from(fido2Helpers.server.completeCreationOptions);
 
             msg.validate();
         });
 
-        it("throws on bad ServerResponse", function() {
+        it("throws on bad ServerResponse", () => {
             delete testArgs.status;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'status' to be 'string', got: undefined");
         });
 
-        it("throws on missing rp", function() {
+        it("throws on missing rp", () => {
             delete testArgs.rp;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rp' to be 'Object', got: undefined");
         });
 
-        it("throws on missing rp.name", function() {
+        it("throws on missing rp.name", () => {
             delete testArgs.rp.name;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'name' to be 'string', got: undefined");
         });
 
-        it("throws on empty rp.name", function() {
+        it("throws on empty rp.name", () => {
             testArgs.rp.name = "";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'name' to be non-empty string");
         });
 
-        it("throws on non-string rp.name", function() {
+        it("throws on non-string rp.name", () => {
             testArgs.rp.name = 42;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'name' to be 'string', got: number");
         });
 
-        it("throws on empty rp.id", function() {
+        it("throws on empty rp.id", () => {
             testArgs.rp.id = "";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'id' to be non-empty string");
         });
 
-        it("throws on non-string rp.id", function() {
+        it("throws on non-string rp.id", () => {
             testArgs.rp.id = 42;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'id' to be 'string', got: number");
         });
 
-        it("throws on empty rp.icon", function() {
+        it("throws on empty rp.icon", () => {
             testArgs.rp.icon = "";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'icon' to be non-empty string");
         });
 
-        it("throws on non-string rp.icon", function() {
+        it("throws on non-string rp.icon", () => {
             testArgs.rp.icon = 42;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'icon' to be 'string', got: number");
         });
 
-        it("throws on missing user", function() {
+        it("throws on missing user", () => {
             delete testArgs.user;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'user' to be 'Object', got: undefined");
         });
 
-        it("throws on missing user.name", function() {
+        it("throws on missing user.name", () => {
             delete testArgs.user.name;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'name' to be 'string', got: undefined");
         });
 
-        it("throws on missing user.displayName", function() {
+        it("throws on missing user.displayName", () => {
             delete testArgs.user.displayName;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'displayName' to be 'string', got: undefined");
         });
 
-        it("throws on missing user.id", function() {
+        it("throws on missing user.id", () => {
             delete testArgs.user.id;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'id' to be 'string', got: undefined");
         });
 
-        it("throws on missing challenge", function() {
+        it("throws on missing challenge", () => {
             delete testArgs.challenge;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'challenge' to be 'string', got: undefined");
         });
 
-        it("throws on missing pubKeyCredParams", function() {
+        it("throws on missing pubKeyCredParams", () => {
             delete testArgs.pubKeyCredParams;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'pubKeyCredParams' to be 'Array', got: undefined");
         });
 
-        it("throws on missing pubKeyCredParams[0].type", function() {
+        it("throws on missing pubKeyCredParams[0].type", () => {
             delete testArgs.pubKeyCredParams[0].type;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "credential type must be 'public-key'");
         });
 
-        it("throws on missing pubKeyCredParams[0].alg", function() {
+        it("throws on missing pubKeyCredParams[0].alg", () => {
             delete testArgs.pubKeyCredParams[0].alg;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'alg' to be 'number', got: undefined");
         });
 
-        it("throws on negative timeout", function() {
+        it("throws on negative timeout", () => {
             testArgs.timeout = -1;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'timeout' to be positive integer");
         });
 
-        it("throws on timeout NaN", function() {
+        it("throws on timeout NaN", () => {
             testArgs.timeout = NaN;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'timeout' to be positive integer");
         });
 
-        it("throws on timeout float", function() {
+        it("throws on timeout float", () => {
             testArgs.timeout = 3.14159;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'timeout' to be positive integer");
         });
 
-        it("throws on missing excludeCredentials[0].type", function() {
+        it("throws on missing excludeCredentials[0].type", () => {
             delete testArgs.excludeCredentials[0].type;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "credential type must be 'public-key'");
         });
 
-        it("throws on missing excludeCredentials[0].id", function() {
+        it("throws on missing excludeCredentials[0].id", () => {
             delete testArgs.excludeCredentials[0].id;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'id' to be 'string', got: undefined");
         });
 
-        it("allows missing excludeCredentials[0].transports", function() {
+        it("allows missing excludeCredentials[0].transports", () => {
             delete testArgs.excludeCredentials[0].transports;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
             msg.validate();
         });
 
-        it("throws on non-Array excludeCredentials[0].transports", function() {
+        it("throws on non-Array excludeCredentials[0].transports", () => {
             testArgs.excludeCredentials[0].transports = 42;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'transports' to be 'Array', got: 42");
         });
 
-        it("throws on invalid excludeCredentials[0].transports string", function() {
+        it("throws on invalid excludeCredentials[0].transports string", () => {
             testArgs.excludeCredentials[0].transports = ["blah"];
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected transport to be 'usb', 'nfc', or 'ble', got: blah");
         });
 
-        it("throws on invalid excludeCredentials[0].transports type", function() {
+        it("throws on invalid excludeCredentials[0].transports type", () => {
             testArgs.excludeCredentials[0].transports = [42];
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected transport to be 'usb', 'nfc', or 'ble', got: 42");
         });
 
-        it("allows empty excludeCredentials[0].transports", function() {
+        it("allows empty excludeCredentials[0].transports", () => {
             testArgs.excludeCredentials[0].transports = [];
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
             msg.validate();
         });
 
-        it("throws on wrong type authenticatorSelection", function() {
+        it("throws on wrong type authenticatorSelection", () => {
             testArgs.authenticatorSelection = "hi";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'authenticatorSelection' to be 'Object', got: hi");
         });
 
-        it("throws on wrong type authenticatorSelection.authenticatorAttachment", function() {
+        it("throws on wrong type authenticatorSelection.authenticatorAttachment", () => {
             testArgs.authenticatorSelection.authenticatorAttachment = 42;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "authenticatorAttachment must be either 'platform' or 'cross-platform'");
         });
 
-        it("throws on invalid authenticatorSelection.authenticatorAttachment", function() {
+        it("throws on invalid authenticatorSelection.authenticatorAttachment", () => {
             testArgs.authenticatorSelection.authenticatorAttachment = "beer";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "authenticatorAttachment must be either 'platform' or 'cross-platform'");
         });
 
-        it("throws on wrong type authenticatorSelection.userVerification", function() {
+        it("throws on wrong type authenticatorSelection.userVerification", () => {
             testArgs.authenticatorSelection.userVerification = 42;
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "userVerification must be 'required', 'preferred' or 'discouraged'");
         });
 
-        it("throws on invalid authenticatorSelection.userVerification", function() {
+        it("throws on invalid authenticatorSelection.userVerification", () => {
             testArgs.authenticatorSelection.userVerification = "bob";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "userVerification must be 'required', 'preferred' or 'discouraged'");
         });
 
-        it("throws on wrong type authenticatorSelection.requireResidentKey", function() {
+        it("throws on wrong type authenticatorSelection.requireResidentKey", () => {
             testArgs.authenticatorSelection.requireResidentKey = "hi";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'requireResidentKey' to be 'boolean', got: string");
         });
 
-        it("throws on invalid attestation", function() {
+        it("throws on invalid attestation", () => {
             testArgs.attestation = "hi";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected attestation to be 'direct', 'none', or 'indirect'");
         });
 
-        it("throws on invalid extensions", function() {
+        it("throws on invalid extensions", () => {
             testArgs.extensions = "hi";
-            var msg = CreationOptions.from(testArgs);
+            var msg = CreateOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'extensions' to be 'Object', got: hi");
         });
     });
 
-    describe("decodeBinaryProperties", function() {
-        it("decodes correct fields", function() {
-            var msg = CreationOptions.from(fido2Helpers.server.completeCreationOptions);
+    describe("decodeBinaryProperties", () => {
+        it("decodes correct fields", () => {
+            var msg = CreateOptions.from(fido2Helpers.server.completeCreationOptions);
             assert.isString(msg.user.id);
             assert.isString(msg.challenge);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.user.id, ArrayBuffer);
             assert.instanceOf(msg.challenge, ArrayBuffer);
             assert.strictEqual(msg.excludeCredentials.length, 1);
-            msg.excludeCredentials.forEach(function(cred) {
+            msg.excludeCredentials.forEach((cred) => {
                 assert.instanceOf(cred.id, ArrayBuffer);
             });
         });
     });
 
-    describe("encodeBinaryProperties", function() {
-        it("encodes correct fields", function() {
-            var msg = CreationOptions.from(fido2Helpers.server.completeCreationOptions);
+    describe("encodeBinaryProperties", () => {
+        it("encodes correct fields", () => {
+            var msg = CreateOptions.from(fido2Helpers.server.completeCreationOptions);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.user.id, ArrayBuffer);
             assert.instanceOf(msg.challenge, ArrayBuffer);
             assert.strictEqual(msg.excludeCredentials.length, 1);
-            msg.excludeCredentials.forEach(function(cred) {
+            msg.excludeCredentials.forEach((cred) => {
                 assert.instanceOf(cred.id, ArrayBuffer);
             });
             msg.encodeBinaryProperties();
             assert.isString(msg.user.id);
             assert.isString(msg.challenge);
             assert.strictEqual(msg.excludeCredentials.length, 1);
-            msg.excludeCredentials.forEach(function(cred) {
+            msg.excludeCredentials.forEach((cred) => {
                 assert.isString(cred.id);
             });
         });
     });
 });
 
-describe("CredentialAttestation", function() {
-    it("is loaded", function() {
+describe("CredentialAttestation", () => {
+    it("is loaded", () => {
         assert.isFunction(CredentialAttestation);
     });
 
-    it("is Msg class", function() {
+    it("is Msg class", () => {
         var msg = new CredentialAttestation();
         assert.instanceOf(msg, Msg);
     });
 
-    it("converts correctly", function() {
+    it("converts correctly", () => {
         var msg = CredentialAttestation.from(fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
 
         var outputObj = msg.toObject();
@@ -924,173 +925,173 @@ describe("CredentialAttestation", function() {
         assert.deepEqual(outputObj, fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
     });
 
-    describe("validation", function() {
+    describe("validation", () => {
         var testArgs;
-        beforeEach(function() {
+        beforeEach(() => {
             testArgs = fido2Helpers.functions.cloneObject(fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
         });
 
-        it("passes with default args", function() {
+        it("passes with default args", () => {
             var msg = CredentialAttestation.from(testArgs);
             msg.validate();
         });
 
-        it("throws on missing rawId", function() {
+        it("throws on missing rawId", () => {
             delete testArgs.rawId;
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rawId' to be 'string', got: undefined");
         });
 
-        it("throws on empty rawId", function() {
+        it("throws on empty rawId", () => {
             testArgs.rawId = "";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rawId' to be base64url format, got: ");
         });
 
-        it("throws on non-base64url rawId", function() {
+        it("throws on non-base64url rawId", () => {
             testArgs.rawId = "beer!";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rawId' to be base64url format, got: ");
         });
 
-        it("throws on base64 rawId", function() {
+        it("throws on base64 rawId", () => {
             testArgs.rawId = "Bo+VjHOkJZy8DjnCJnIc0Oxt9QAz5upMdSJxNbd+GyAo6MNIvPBb9YsUlE0ZJaaWXtWH5FQyPS6bT/e698IirQ==";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rawId' to be base64url format, got: ");
         });
 
-        it("throws on wrong type rawId", function() {
+        it("throws on wrong type rawId", () => {
             testArgs.rawId = 42;
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rawId' to be 'string', got: number");
         });
 
-        it("throws on missing response", function() {
+        it("throws on missing response", () => {
             delete testArgs.response;
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'response' to be 'Object', got: undefined");
         });
 
-        it("throws on wrong type response", function() {
+        it("throws on wrong type response", () => {
             testArgs.response = "beer";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'response' to be 'Object', got: beer");
         });
 
-        it("throws on missing response.attestationObject", function() {
+        it("throws on missing response.attestationObject", () => {
             delete testArgs.response.attestationObject;
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'attestationObject' to be 'string', got: undefined");
         });
 
-        it("throws on wrong type response.attestationObject", function() {
+        it("throws on wrong type response.attestationObject", () => {
             testArgs.response.attestationObject = 42;
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'attestationObject' to be 'string', got: number");
         });
 
-        it("throws on empty response.attestationObject", function() {
+        it("throws on empty response.attestationObject", () => {
             testArgs.response.attestationObject = "";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'attestationObject' to be base64url format, got: ");
         });
 
-        it("throws on non-base64url response.attestationObject", function() {
+        it("throws on non-base64url response.attestationObject", () => {
             testArgs.response.attestationObject = "beer!";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'attestationObject' to be base64url format, got: ");
         });
 
-        it("throws on base64 response.attestationObject", function() {
+        it("throws on base64 response.attestationObject", () => {
             testArgs.response.attestationObject = "Bo+VjHOkJZy8DjnCJnIc0Oxt9QAz5upMdSJxNbd+GyAo6MNIvPBb9YsUlE0ZJaaWXtWH5FQyPS6bT/e698IirQ==";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'attestationObject' to be base64url format, got: ");
         });
 
-        it("throws on missing response.clientDataJSON", function() {
+        it("throws on missing response.clientDataJSON", () => {
             delete testArgs.response.clientDataJSON;
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'clientDataJSON' to be 'string', got: undefined");
         });
 
-        it("throws on wrong type response.clientDataJSON", function() {
+        it("throws on wrong type response.clientDataJSON", () => {
             testArgs.response.clientDataJSON = 42;
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'clientDataJSON' to be 'string', got: number");
         });
 
-        it("throws on empty response.clientDataJSON", function() {
+        it("throws on empty response.clientDataJSON", () => {
             testArgs.response.clientDataJSON = "";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'clientDataJSON' to be base64url format, got: ");
         });
 
-        it("throws on non-base64url response.clientDataJSON", function() {
+        it("throws on non-base64url response.clientDataJSON", () => {
             testArgs.response.clientDataJSON = "beer!";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'clientDataJSON' to be base64url format, got: ");
         });
 
-        it("throws on base64 response.clientDataJSON", function() {
+        it("throws on base64 response.clientDataJSON", () => {
             testArgs.response.clientDataJSON = "Bo+VjHOkJZy8DjnCJnIc0Oxt9QAz5upMdSJxNbd+GyAo6MNIvPBb9YsUlE0ZJaaWXtWH5FQyPS6bT/e698IirQ==";
             var msg = CredentialAttestation.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'clientDataJSON' to be base64url format, got: ");
         });
     });
 
-    describe("decodeBinaryProperties", function() {
-        it("decodes correct fields", function() {
+    describe("decodeBinaryProperties", () => {
+        it("decodes correct fields", () => {
             var msg = CredentialAttestation.from(fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
             assert.isString(msg.rawId);
             assert.isString(msg.response.attestationObject);
@@ -1102,8 +1103,8 @@ describe("CredentialAttestation", function() {
         });
     });
 
-    describe("encodeBinaryProperties", function() {
-        it("encodes correct fields", function() {
+    describe("encodeBinaryProperties", () => {
+        it("encodes correct fields", () => {
             var msg = CredentialAttestation.from(fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.rawId, ArrayBuffer);
@@ -1117,17 +1118,17 @@ describe("CredentialAttestation", function() {
     });
 });
 
-describe("GetOptionsRequest", function() {
-    it("is loaded", function() {
+describe("GetOptionsRequest", () => {
+    it("is loaded", () => {
         assert.isFunction(GetOptionsRequest);
     });
 
-    it("is Msg class", function() {
+    it("is Msg class", () => {
         var msg = new GetOptionsRequest();
         assert.instanceOf(msg, Msg);
     });
 
-    it("converts correctly", function() {
+    it("converts correctly", () => {
         var inputObj = {
             username: "adam",
             displayName: "AdamPowers"
@@ -1139,80 +1140,80 @@ describe("GetOptionsRequest", function() {
         assert.deepEqual(outputObj, inputObj);
     });
 
-    describe("validate", function() {
+    describe("validate", () => {
         var testArgs;
-        beforeEach(function() {
+        beforeEach(() => {
             testArgs = fido2Helpers.functions.cloneObject(fido2Helpers.server.getOptionsRequest);
         });
 
-        it("passes with basic args", function() {
+        it("passes with basic args", () => {
             var msg = GetOptionsRequest.from(testArgs);
             msg.validate();
         });
 
-        it("throws on missing username", function() {
+        it("throws on missing username", () => {
             delete testArgs.username;
             var msg = GetOptionsRequest.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'username' to be 'string', got: undefined");
         });
 
-        it("throws on empty username", function() {
+        it("throws on empty username", () => {
             testArgs.username = "";
             var msg = GetOptionsRequest.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'username' to be non-empty string");
         });
 
-        it("throws on missing displayName", function() {
+        it("throws on missing displayName", () => {
             delete testArgs.displayName;
             var msg = GetOptionsRequest.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'displayName' to be 'string', got: undefined");
         });
 
-        it("throws on empty displayName", function() {
+        it("throws on empty displayName", () => {
             testArgs.displayName = "";
             var msg = GetOptionsRequest.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'displayName' to be non-empty string");
         });
     });
 
-    describe("decodeBinaryProperties", function() {
-        it("doesn't throw", function() {
+    describe("decodeBinaryProperties", () => {
+        it("doesn't throw", () => {
             var msg = GetOptionsRequest.from(fido2Helpers.server.getOptionsRequest);
             msg.decodeBinaryProperties();
         });
     });
 
-    describe("encodeBinaryProperties", function() {
-        it("doesn't throw", function() {
+    describe("encodeBinaryProperties", () => {
+        it("doesn't throw", () => {
             var msg = GetOptionsRequest.from(fido2Helpers.server.getOptionsRequest);
             msg.encodeBinaryProperties();
         });
     });
 });
 
-describe("GetOptions", function() {
-    it("is loaded", function() {
+describe("GetOptions", () => {
+    it("is loaded", () => {
         assert.isFunction(GetOptions);
     });
 
-    it("is ServerResponse class", function() {
+    it("is ServerResponse class", () => {
         var msg = new GetOptions();
         assert.instanceOf(msg, ServerResponse);
     });
 
-    it("converts correctly", function() {
+    it("converts correctly", () => {
         var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
 
         var outputObj = msg.toObject();
@@ -1220,246 +1221,246 @@ describe("GetOptions", function() {
         assert.deepEqual(outputObj, fido2Helpers.server.completeGetOptions);
     });
 
-    describe("validate", function() {
+    describe("validate", () => {
         var testArgs;
-        beforeEach(function() {
+        beforeEach(() => {
             testArgs = fido2Helpers.functions.cloneObject(fido2Helpers.server.completeGetOptions);
         });
 
-        it("allows basic data", function() {
+        it("allows basic data", () => {
             var msg = GetOptions.from(fido2Helpers.server.basicGetOptions);
             msg.validate();
         });
 
-        it("allows complete data", function() {
+        it("allows complete data", () => {
             var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
             msg.validate();
         });
 
-        it("throws on missing status", function() {
+        it("throws on missing status", () => {
             delete testArgs.status;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'status' to be 'string', got: undefined");
         });
 
-        it("throws on missing challenge", function() {
+        it("throws on missing challenge", () => {
             delete testArgs.challenge;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'challenge' to be 'string', got: undefined");
         });
 
-        it("throws on empty challenge", function() {
+        it("throws on empty challenge", () => {
             testArgs.challenge = "";
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'challenge' to be base64url format, got:");
         });
 
-        it("throws on wrong type challenge", function() {
+        it("throws on wrong type challenge", () => {
             testArgs.challenge = {};
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'challenge' to be 'string', got: object");
         });
 
-        it("throws on wrong type timeout", function() {
+        it("throws on wrong type timeout", () => {
             testArgs.timeout = "beer";
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'timeout' to be 'number', got: string");
         });
 
-        it("throws on negative timeout", function() {
+        it("throws on negative timeout", () => {
             testArgs.timeout = -1;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'timeout' to be positive integer");
         });
 
-        it("throws on NaN timeout", function() {
+        it("throws on NaN timeout", () => {
             testArgs.timeout = NaN;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'timeout' to be positive integer");
         });
 
-        it("throws on float timeout", function() {
+        it("throws on float timeout", () => {
             testArgs.timeout = 3.14159;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'timeout' to be positive integer");
         });
 
-        it("throws on wrong type rpId", function() {
+        it("throws on wrong type rpId", () => {
             testArgs.rpId = [];
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rpId' to be 'string', got: object");
         });
 
-        it("throws on empty rpId", function() {
+        it("throws on empty rpId", () => {
             testArgs.rpId = "";
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rpId' to be non-empty string");
         });
 
-        it("throws on wrong type allowCredentials", function() {
+        it("throws on wrong type allowCredentials", () => {
             testArgs.allowCredentials = 42;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'allowCredentials' to be 'Array', got: 42");
         });
 
-        it("throws on missing allowCredentials[0].type", function() {
+        it("throws on missing allowCredentials[0].type", () => {
             delete testArgs.allowCredentials[0].type;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "credential type must be 'public-key'");
         });
 
-        it("throws on wrong type allowCredentials[0].type", function() {
+        it("throws on wrong type allowCredentials[0].type", () => {
             testArgs.allowCredentials[0].type = -7;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "credential type must be 'public-key'");
         });
 
-        it("throws on missing allowCredentials[0].id", function() {
+        it("throws on missing allowCredentials[0].id", () => {
             delete testArgs.allowCredentials[0].id;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'id' to be 'string', got: undefined");
         });
 
-        it("throws on wrong type allowCredentials[0].id", function() {
+        it("throws on wrong type allowCredentials[0].id", () => {
             testArgs.allowCredentials[0].id = {};
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'id' to be 'string', got: object");
         });
 
-        it("throws on wrong type allowCredentials[0].transports", function() {
+        it("throws on wrong type allowCredentials[0].transports", () => {
             testArgs.allowCredentials[0].transports = "usb";
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'transports' to be 'Array', got: usb");
         });
 
-        it("throws on invalid transport", function() {
+        it("throws on invalid transport", () => {
             testArgs.allowCredentials[0].transports = ["foo"];
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected transport to be 'usb', 'nfc', or 'ble', got: foo");
         });
 
-        it("throws on wrong type userVerification", function() {
+        it("throws on wrong type userVerification", () => {
             testArgs.userVerification = 42;
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "userVerification must be 'required', 'preferred' or 'discouraged'");
         });
 
-        it("throws on invalid userVerification", function() {
+        it("throws on invalid userVerification", () => {
             testArgs.userVerification = "foo";
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "userVerification must be 'required', 'preferred' or 'discouraged'");
         });
 
-        it("throws on wrong type extensions", function() {
+        it("throws on wrong type extensions", () => {
             testArgs.extensions = "foo";
             var msg = GetOptions.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'extensions' to be 'Object', got: foo");
         });
     });
 
-    describe("decodeBinaryProperties", function() {
-        it("decodes correct fields", function() {
+    describe("decodeBinaryProperties", () => {
+        it("decodes correct fields", () => {
             var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
             assert.isString(msg.challenge);
-            msg.allowCredentials.forEach(function(cred) {
+            msg.allowCredentials.forEach((cred) => {
                 assert.isString(cred.id);
             });
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.challenge, ArrayBuffer);
-            msg.allowCredentials.forEach(function(cred) {
+            msg.allowCredentials.forEach((cred) => {
                 assert.instanceOf(cred.id, ArrayBuffer);
             });
         });
     });
 
-    describe("encodeBinaryProperties", function() {
-        it("encodes correct fields", function() {
+    describe("encodeBinaryProperties", () => {
+        it("encodes correct fields", () => {
             var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.challenge, ArrayBuffer);
-            msg.allowCredentials.forEach(function(cred) {
+            msg.allowCredentials.forEach((cred) => {
                 assert.instanceOf(cred.id, ArrayBuffer);
             });
             msg.encodeBinaryProperties();
             assert.isString(msg.challenge);
-            msg.allowCredentials.forEach(function(cred) {
+            msg.allowCredentials.forEach((cred) => {
                 assert.isString(cred.id);
             });
         });
     });
 });
 
-describe("CredentialAssertion", function() {
-    it("is loaded", function() {
+describe("CredentialAssertion", () => {
+    it("is loaded", () => {
         assert.isFunction(CredentialAssertion);
     });
 
-    it("is Msg class", function() {
+    it("is Msg class", () => {
         var msg = new CredentialAssertion();
         assert.instanceOf(msg, Msg);
     });
 
-    it("converts correctly", function() {
+    it("converts correctly", () => {
         var msg = CredentialAssertion.from(fido2Helpers.server.assertionResponseMsgB64Url);
 
         var outputObj = msg.toObject();
@@ -1467,175 +1468,175 @@ describe("CredentialAssertion", function() {
         assert.deepEqual(outputObj, fido2Helpers.server.assertionResponseMsgB64Url);
     });
 
-    describe("validation", function() {
+    describe("validation", () => {
         var testArgs;
-        beforeEach(function() {
+        beforeEach(() => {
             testArgs = fido2Helpers.functions.cloneObject(fido2Helpers.server.assertionResponseMsgB64Url);
         });
 
-        it("allows basic data", function() {
+        it("allows basic data", () => {
             var msg = CredentialAssertion.from(testArgs);
             msg.validate();
         });
 
-        it("throws on missing rawId", function() {
+        it("throws on missing rawId", () => {
             delete testArgs.rawId;
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rawId' to be 'string', got: undefined");
         });
 
-        it("throws on empty rawId", function() {
+        it("throws on empty rawId", () => {
             testArgs.rawId = "";
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rawId' to be base64url format, got:");
         });
 
-        it("throws on wrong type rawId", function() {
+        it("throws on wrong type rawId", () => {
             testArgs.rawId = 42;
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'rawId' to be 'string', got: number");
         });
 
-        it("throws on missing response", function() {
+        it("throws on missing response", () => {
             delete testArgs.response;
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'response' to be 'Object', got: undefined");
         });
 
-        it("throws on wrong type response", function() {
+        it("throws on wrong type response", () => {
             testArgs.response = "beer";
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'response' to be 'Object', got: beer");
         });
 
-        it("throws on missing authenticatorData", function() {
+        it("throws on missing authenticatorData", () => {
             delete testArgs.response.authenticatorData;
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'authenticatorData' to be 'string', got: undefined");
         });
 
-        it("throws on emtpy authenticatorData", function() {
+        it("throws on emtpy authenticatorData", () => {
             testArgs.response.authenticatorData = "";
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'authenticatorData' to be base64url format, got: ");
         });
 
-        it("throws on wrong type authenticatorData", function() {
+        it("throws on wrong type authenticatorData", () => {
             testArgs.response.authenticatorData = /foo/;
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'authenticatorData' to be 'string', got: object");
         });
 
-        it("throws on missing clientDataJSON", function() {
+        it("throws on missing clientDataJSON", () => {
             delete testArgs.response.clientDataJSON;
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'clientDataJSON' to be 'string', got: undefined");
         });
 
-        it("throws on empty clientDataJSON", function() {
+        it("throws on empty clientDataJSON", () => {
             testArgs.response.clientDataJSON = "";
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'clientDataJSON' to be base64url format, got: ");
         });
 
-        it("throws on wrong type clientDataJSON", function() {
+        it("throws on wrong type clientDataJSON", () => {
             testArgs.response.clientDataJSON = [];
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'clientDataJSON' to be 'string', got: object");
         });
 
-        it("throws on missing signature", function() {
+        it("throws on missing signature", () => {
             delete testArgs.response.signature;
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'signature' to be 'string', got: undefined");
         });
 
-        it("throws on empty signature", function() {
+        it("throws on empty signature", () => {
             testArgs.response.signature = "";
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'signature' to be base64url format, got: ");
         });
 
-        it("throws on wrong type signature", function() {
+        it("throws on wrong type signature", () => {
             testArgs.response.signature = {};
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'signature' to be 'string', got: object");
         });
 
-        it("passes on missing userHandle", function() {
+        it("passes on missing userHandle", () => {
             delete testArgs.response.userHandle;
             var msg = CredentialAssertion.from(testArgs);
 
             msg.validate();
         });
 
-        it("passes on null userHandle", function() {
+        it("passes on null userHandle", () => {
             testArgs.response.userHandle = null;
             var msg = CredentialAssertion.from(testArgs);
 
             msg.validate();
         });
 
-        it("passes on empty userHandle", function() {
+        it("passes on empty userHandle", () => {
             testArgs.response.userHandle = "";
             var msg = CredentialAssertion.from(testArgs);
             msg.validate();
         });
 
-        it("throws on wrong type userHandle", function() {
+        it("throws on wrong type userHandle", () => {
             testArgs.response.userHandle = 42;
             var msg = CredentialAssertion.from(testArgs);
 
-            assert.throws(function() {
+            assert.throws(() => {
                 msg.validate();
             }, Error, "expected 'userHandle' to be null or string");
         });
     });
 
-    describe("decodeBinaryProperties", function() {
-        it("decodes correct fields", function() {
+    describe("decodeBinaryProperties", () => {
+        it("decodes correct fields", () => {
             var msg = CredentialAssertion.from(fido2Helpers.server.assertionResponseMsgB64Url);
             assert.isString(msg.rawId);
             assert.isString(msg.response.clientDataJSON);
@@ -1651,8 +1652,8 @@ describe("CredentialAssertion", function() {
         });
     });
 
-    describe("encodeBinaryProperties", function() {
-        it("encodes correct fields", function() {
+    describe("encodeBinaryProperties", () => {
+        it("encodes correct fields", () => {
             var msg = CredentialAssertion.from(fido2Helpers.server.assertionResponseMsgB64Url);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.rawId, ArrayBuffer);
@@ -1670,18 +1671,18 @@ describe("CredentialAssertion", function() {
     });
 });
 
-describe("WebAuthnOptions", function() {
-    it("is loaded", function() {
+describe("WebAuthnOptions", () => {
+    it("is loaded", () => {
         assert.isFunction(WebAuthnOptions);
     });
 
-    it("is Msg class", function() {
+    it("is Msg class", () => {
         var msg = new WebAuthnOptions();
         assert.instanceOf(msg, Msg);
     });
 
-    describe("merge", function() {
-        it("dst over src", function() {
+    describe("merge", () => {
+        it("dst over src", () => {
             var src = WebAuthnOptions.from({
                 timeout: 1
             });
@@ -1695,7 +1696,7 @@ describe("WebAuthnOptions", function() {
             assert.strictEqual(src.timeout, 2);
         });
 
-        it("src over dst", function() {
+        it("src over dst", () => {
             var src = WebAuthnOptions.from({
                 timeout: 1
             });
@@ -1709,7 +1710,7 @@ describe("WebAuthnOptions", function() {
             assert.strictEqual(src.timeout, 1);
         });
 
-        it("sets missing values", function() {
+        it("sets missing values", () => {
             var src = WebAuthnOptions.from({});
             var dst = WebAuthnOptions.from({
                 timeout: 2
@@ -1720,7 +1721,7 @@ describe("WebAuthnOptions", function() {
             assert.strictEqual(src.timeout, 2);
         });
 
-        it("allows empty", function() {
+        it("allows empty", () => {
             var src = WebAuthnOptions.from({});
             var dst = WebAuthnOptions.from({});
 

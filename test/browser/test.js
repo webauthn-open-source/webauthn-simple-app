@@ -1,6 +1,6 @@
 /* globals chai, sinon, fido2Helpers
-   defaultRoutes, Msg, ServerResponse,
-   CreationOptionsRequest, CreationOptions,
+   WebAuthnHelpers, Msg, ServerResponse,
+   CreateOptionsRequest, CreateOptions,
    CredentialAttestation,
    GetOptionsRequest, GetOptions,
    CredentialAssertion,
@@ -14,11 +14,11 @@ mocha.setup("bdd");
 
 function serverMock() {
     var server;
-    beforeEach(function() {
+    beforeEach(() => {
         server = sinon.fakeServer.create();
         server.respondImmediately = true;
     });
-    afterEach(function() {
+    afterEach(() => {
         server.restore();
     });
     function serverFake(url, data) {
@@ -92,7 +92,7 @@ if (!navigator.credentials.get) {
 }
 /**** END TESTING POLYFILL *******/
 
-describe.skip("debug", function() {
+describe.skip("debug", () => {
     it("isSecureContext", () => {
         assert.isTrue(window.isSecureContext);
     });
@@ -112,43 +112,43 @@ describe.skip("debug", function() {
     });
 });
 
-describe("WebAuthnApp", function() {
-    afterEach(function() {
+describe("WebAuthnApp", () => {
+    afterEach(() => {
         removeAllListeners();
     });
 
-    var webauthnApp;
-    beforeEach(function() {
-        webauthnApp = new window.WebAuthnApp();
+    var app;
+    beforeEach(() => {
+        app = new window.WebAuthnApp();
     });
 
-    it("exists", function() {
+    it("exists", () => {
         assert.isFunction(window.WebAuthnApp);
     });
 
-    it("is constructor", function() {
-        assert.isObject(webauthnApp);
+    it("is constructor", () => {
+        assert.isObject(app);
     });
 
-    describe("loading", function() {
+    describe("loading", () => {
         it("is null in insecure context");
         it("is null where WebAuthn API doesn't exist");
     });
 
-    describe("events", function() {
+    describe("events", () => {
         it("debug on send");
         it("debug on receive");
         it("on load");
     });
 
-    describe("config", function() {
+    describe("config", () => {
         it("can change endpoints");
         it("can change methods");
         it("can set send callback");
         it("can set receive callback");
     });
 
-    describe("send", function() {
+    describe("send", () => {
         var serverFake = serverMock();
         class TestMsg extends ServerResponse {
             constructor() {
@@ -163,7 +163,7 @@ describe("WebAuthnApp", function() {
             validate() {}
         }
 
-        it("returns promise", function() {
+        it("returns promise", () => {
             serverFake("/foo", {
                 status: "ok",
                 id: 42,
@@ -173,11 +173,11 @@ describe("WebAuthnApp", function() {
                 id: 12,
                 comment: "hi there"
             });
-            var p = webauthnApp.send("POST", "/foo", msg, TestMsg);
+            var p = app.send("POST", "/foo", msg, TestMsg);
             assert.instanceOf(p, Promise);
         });
 
-        it("delivers generic message", function() {
+        it("delivers generic message", () => {
             serverFake("/foo", {
                 status: "ok",
                 id: 42,
@@ -188,10 +188,10 @@ describe("WebAuthnApp", function() {
                 id: 12,
                 comment: "hi there"
             });
-            return webauthnApp.send("POST", "/foo", msg, TestMsg);
+            return app.send("POST", "/foo", msg, TestMsg);
         });
 
-        it("resolves to Msg on success", function() {
+        it("resolves to Msg on success", () => {
             serverFake("/foo", {
                 status: "ok",
                 id: 42,
@@ -202,9 +202,9 @@ describe("WebAuthnApp", function() {
                 id: 12,
                 comment: "hi there"
             });
-            return webauthnApp
+            return app
                 .send("POST", "/foo", msg, TestMsg)
-                .then(function(res) {
+                .then((res) => {
                     assert.instanceOf(res, Msg);
                     assert.strictEqual(res.id, 42);
                     assert.strictEqual(res.comment, "hello from outer space");
@@ -212,26 +212,26 @@ describe("WebAuthnApp", function() {
                 });
         });
 
-        it("resolves to Error on failure", function(done) {
+        it("resolves to Error on failure", (done) => {
             var msg = TestMsg.from({
                 id: 12,
                 comment: "hi there"
             });
-            webauthnApp.send("POST", "/bar", msg, TestMsg)
-                .then(function() {
+            app.send("POST", "/bar", msg, TestMsg)
+                .then(() => {
                     done(new Error("should not have resolved"));
                 })
-                .catch(function(res) {
+                .catch((res) => {
                     assert.instanceOf(res, Error);
                     assert.strictEqual(res.message, "server returned status: 404");
                     done();
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     done(err);
                 });
         });
 
-        it("fires send event", function() {
+        it("fires send event", () => {
             var msg = TestMsg.from({
                 id: 12,
                 comment: "hi there"
@@ -253,11 +253,11 @@ describe("WebAuthnApp", function() {
                 assert.strictEqual(data.id, 12);
                 return true;
             }
-            webauthnApp.send("POST", "/foo", msg, TestMsg);
+            app.send("POST", "/foo", msg, TestMsg);
             return p;
         });
 
-        it("fires send-raw event", function() {
+        it("fires send-raw event", () => {
             var msg = TestMsg.from({
                 id: 12,
                 comment: "hi there"
@@ -277,11 +277,11 @@ describe("WebAuthnApp", function() {
                 assert.isString(data);
                 return true;
             });
-            webauthnApp.send("POST", "/foo", msg, TestMsg);
+            app.send("POST", "/foo", msg, TestMsg);
             return p;
         });
 
-        it("fires response-raw event on success", function() {
+        it("fires response-raw event on success", () => {
             var msg = TestMsg.from({
                 id: 12,
                 comment: "hi there"
@@ -304,11 +304,11 @@ describe("WebAuthnApp", function() {
                 assert.isString(data.body);
                 return true;
             });
-            webauthnApp.send("POST", "/foo", msg, TestMsg);
+            app.send("POST", "/foo", msg, TestMsg);
             return p;
         });
 
-        it("fires response event on success", function() {
+        it("fires response event on success", () => {
             var msg = TestMsg.from({
                 id: 12,
                 comment: "hi there"
@@ -331,11 +331,11 @@ describe("WebAuthnApp", function() {
                 assert.instanceOf(data.body, ServerResponse);
                 return true;
             });
-            webauthnApp.send("POST", "/foo", msg, TestMsg);
+            app.send("POST", "/foo", msg, TestMsg);
             return p;
         });
 
-        it("fires send-error event on failure", function() {
+        it("fires send-error event on failure", () => {
             var msg = TestMsg.from({
                 id: 12,
                 comment: "hi there"
@@ -352,156 +352,156 @@ describe("WebAuthnApp", function() {
                 assert.instanceOf(data, Error);
                 return true;
             });
-            webauthnApp.send("POST", "/foo", msg, TestMsg).catch(() => {});
+            app.send("POST", "/foo", msg, TestMsg).catch(() => {});
             return p;
         });
     });
 
-    describe("getRegisterChallenge", function() {
+    describe("requestRegisterOptions", () => {
         var serverFake = serverMock();
         var sendSpy;
-        beforeEach(function() {
-            sendSpy = sinon.spy(webauthnApp, "send");
+        beforeEach(() => {
+            sendSpy = sinon.spy(app, "send");
         });
-        afterEach(function() {
-            webauthnApp.send.restore();
+        afterEach(() => {
+            app.send.restore();
         });
 
-        it("can get register challenge", function() {
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
-            return webauthnApp
-                .getRegisterChallenge()
-                .then(function() {
+        it("can get register options", () => {
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
+            return app
+                .requestRegisterOptions()
+                .then(() => {
                     assert.strictEqual(sendSpy.callCount, 1);
                     assert.deepEqual(
                         sendSpy.args[0],
                         [
                             "POST",
-                            "/webauthn/register/challenge",
-                            CreationOptionsRequest.from({
+                            "/attestation/options",
+                            CreateOptionsRequest.from({
                                 username: "adam",
                                 displayName: "adam"
                             }),
-                            CreationOptions
+                            CreateOptions
                         ]
                     );
                 });
         });
 
-        it("resolves to correct result", function() {
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
-            return webauthnApp.getRegisterChallenge()
-                .then(function(res) {
-                    assert.instanceOf(res, CreationOptions);
+        it("resolves to correct result", () => {
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
+            return app.requestRegisterOptions()
+                .then((res) => {
+                    assert.instanceOf(res, CreateOptions);
                     assert.strictEqual(res.status, "ok");
                     assert.strictEqual(res.challenge, "sP4MiwodjreC8-80IMjcyWNlo_Y1SJXmFgQNBilnjdf30WRsjFDhDYmfY4-4uhq2HFjYREbXdr6Vjuvz2XvTjA==");
                 });
         });
-        it("rejects if username not set", function(done) {
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.getRegisterChallenge()
-                .then(function() {
+        it("rejects if username not set", (done) => {
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.requestRegisterOptions()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "expected 'username' to be 'string', got: undefined");
                     done();
                 });
         });
 
-        it("rejects on server error", function(done) {
+        it("rejects on server error", (done) => {
             // XXX: no server fake
-            webauthnApp.username = "adam";
-            webauthnApp.getRegisterChallenge()
-                .then(function() {
+            app.username = "adam";
+            app.requestRegisterOptions()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "server returned status: 404");
                     done();
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     done(err);
                 });
         });
     });
 
-    describe("sendRegisterResponse", function() {
+    describe("sendRegisterResult", () => {
         var serverFake = serverMock();
         var testCred;
         var sendSpy;
-        beforeEach(function() {
-            sendSpy = sinon.spy(webauthnApp, "send");
+        beforeEach(() => {
+            sendSpy = sinon.spy(app, "send");
             // fake a PublicKeyCredential
             testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.makeCredentialAttestationU2fResponse);
             Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             // ArrayBuffers don't get copied
             testCred.response = fido2Helpers.lib.makeCredentialAttestationU2fResponse.response;
         });
-        afterEach(function() {
-            webauthnApp.send.restore();
+        afterEach(() => {
+            app.send.restore();
         });
 
-        it("can get register challenge", function() {
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
-            webauthnApp.username = "adam";
-            return webauthnApp
-                .sendRegisterResponse(testCred)
-                .then(function() {
+        it("can get register challenge", () => {
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
+            app.username = "adam";
+            return app
+                .sendRegisterResult(testCred)
+                .then(() => {
                     assert.strictEqual(sendSpy.callCount, 1);
                     assert.strictEqual(sendSpy.args[0][0], "POST");
-                    assert.strictEqual(sendSpy.args[0][1], "/webauthn/register/response");
+                    assert.strictEqual(sendSpy.args[0][1], "/attestation/result");
                     assert.instanceOf(sendSpy.args[0][2], CredentialAttestation);
                     assert.strictEqual(sendSpy.args[0][3], ServerResponse);
                 });
         });
 
-        it("resolves to correct result", function() {
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
-            webauthnApp.username = "adam";
-            return webauthnApp.sendRegisterResponse(testCred)
-                .then(function(res) {
+        it("resolves to correct result", () => {
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
+            app.username = "adam";
+            return app.sendRegisterResult(testCred)
+                .then((res) => {
                     assert.instanceOf(res, ServerResponse);
                     assert.strictEqual(res.status, "ok");
                     assert.strictEqual(res.errorMessage, "");
                 });
         });
 
-        it("rejects if pkCred not passed in", function() {
-            assert.throws(function() {
-                webauthnApp.sendRegisterResponse();
+        it("rejects if pkCred not passed in", () => {
+            assert.throws(() => {
+                app.sendRegisterResult();
             }, Error, "expected 'pkCred' to be instance of PublicKeyCredential");
         });
 
-        it("rejects on server error", function(done) {
+        it("rejects on server error", (done) => {
             // XXX: no server fake
-            webauthnApp.username = "adam";
-            webauthnApp.sendRegisterResponse(testCred)
-                .then(function() {
+            app.username = "adam";
+            app.sendRegisterResult(testCred)
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "server returned status: 404");
                     done();
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     done(err);
                 });
         });
 
-        it("rejects on server msg failed", function(done) {
-            serverFake("/webauthn/register/response", fido2Helpers.server.errorServerResponse);
-            webauthnApp.username = "adam";
-            webauthnApp.sendRegisterResponse(testCred)
-                .then(function(res) {
+        it("rejects on server msg failed", (done) => {
+            serverFake("/attestation/result", fido2Helpers.server.errorServerResponse);
+            app.username = "adam";
+            app.sendRegisterResult(testCred)
+                .then((res) => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "out of memory");
                     done();
@@ -509,28 +509,28 @@ describe("WebAuthnApp", function() {
         });
     });
 
-    describe("getLoginChallenge", function() {
+    describe("requestLoginOptions", () => {
         var serverFake = serverMock();
         var sendSpy;
-        beforeEach(function() {
-            sendSpy = sinon.spy(webauthnApp, "send");
+        beforeEach(() => {
+            sendSpy = sinon.spy(app, "send");
         });
-        afterEach(function() {
-            webauthnApp.send.restore();
+        afterEach(() => {
+            app.send.restore();
         });
 
-        it("can get register challenge", function() {
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
-            return webauthnApp
-                .getLoginChallenge()
-                .then(function() {
+        it("can get register challenge", () => {
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
+            return app
+                .requestLoginOptions()
+                .then(() => {
                     assert.strictEqual(sendSpy.callCount, 1);
                     assert.deepEqual(
                         sendSpy.args[0],
                         [
                             "POST",
-                            "/webauthn/login/challenge",
+                            "/assertion/options",
                             GetOptionsRequest.from({
                                 username: "adam",
                                 displayName: "adam"
@@ -541,120 +541,120 @@ describe("WebAuthnApp", function() {
                 });
         });
 
-        it("resolves to correct result", function() {
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
-            return webauthnApp.getLoginChallenge()
-                .then(function(res) {
+        it("resolves to correct result", () => {
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
+            return app.requestLoginOptions()
+                .then((res) => {
                     assert.instanceOf(res, GetOptions);
                     assert.strictEqual(res.status, "ok");
                     assert.strictEqual(res.challenge, "sP4MiwodjreC8-80IMjcyWNlo_Y1SJXmFgQNBilnjdf30WRsjFDhDYmfY4-4uhq2HFjYREbXdr6Vjuvz2XvTjA==");
                 });
         });
 
-        it("rejects if username not set", function(done) {
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.getLoginChallenge()
-                .then(function() {
+        it("rejects if username not set", (done) => {
+            serverFake("/attestation/options", fido2Helpers.server.basicGetOptions);
+            app.requestLoginOptions()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "expected 'username' to be 'string', got: undefined");
                     done();
                 });
         });
 
-        it("rejects on server error", function(done) {
+        it("rejects on server error", (done) => {
             // XXX: no server fake
-            webauthnApp.username = "adam";
-            webauthnApp.getLoginChallenge()
-                .then(function() {
+            app.username = "adam";
+            app.requestLoginOptions()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "server returned status: 404");
                     done();
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     done(err);
                 });
         });
     });
 
-    describe("sendLoginResponse", function() {
+    describe("sendLoginResult", () => {
         var serverFake = serverMock();
         var testCred;
         var sendSpy;
-        beforeEach(function() {
-            sendSpy = sinon.spy(webauthnApp, "send");
+        beforeEach(() => {
+            sendSpy = sinon.spy(app, "send");
             // fake a PublicKeyCredential
             testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.assertionResponse);
             Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             // ArrayBuffers don't get copied
             testCred.response = fido2Helpers.lib.assertionResponse.response;
         });
-        afterEach(function() {
-            webauthnApp.send.restore();
+        afterEach(() => {
+            app.send.restore();
         });
 
-        it("can get register challenge", function() {
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
-            webauthnApp.username = "adam";
-            return webauthnApp
-                .sendLoginResponse(testCred)
-                .then(function() {
+        it("can get login options", () => {
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
+            app.username = "adam";
+            return app
+                .sendLoginResult(testCred)
+                .then(() => {
                     assert.strictEqual(sendSpy.callCount, 1);
                     assert.strictEqual(sendSpy.args[0][0], "POST");
-                    assert.strictEqual(sendSpy.args[0][1], "/webauthn/login/response");
+                    assert.strictEqual(sendSpy.args[0][1], "/assertion/result");
                     assert.instanceOf(sendSpy.args[0][2], CredentialAssertion);
                     assert.strictEqual(sendSpy.args[0][3], ServerResponse);
                 });
         });
 
-        it("resolves to correct result", function() {
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
-            webauthnApp.username = "adam";
-            return webauthnApp.sendLoginResponse(testCred)
-                .then(function(res) {
+        it("resolves to correct result", () => {
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
+            app.username = "adam";
+            return app.sendLoginResult(testCred)
+                .then((res) => {
                     assert.instanceOf(res, ServerResponse);
                     assert.strictEqual(res.status, "ok");
                     assert.strictEqual(res.errorMessage, "");
                 });
         });
 
-        it("rejects if assn not passed in", function() {
-            assert.throws(function() {
-                webauthnApp.sendLoginResponse();
+        it("rejects if assn not passed in", () => {
+            assert.throws(() => {
+                app.sendLoginResult();
             }, Error, "expected 'assn' to be instance of PublicKeyCredential");
         });
 
-        it("rejects on server error", function(done) {
+        it("rejects on server error", (done) => {
             // XXX: no server fake
-            webauthnApp.username = "adam";
-            webauthnApp.sendLoginResponse(testCred)
-                .then(function() {
+            app.username = "adam";
+            app.sendLoginResult(testCred)
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "server returned status: 404");
                     done();
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     done(err);
                 });
         });
 
-        it("rejects on server msg failed", function(done) {
-            serverFake("/webauthn/login/response", fido2Helpers.server.errorServerResponse);
-            webauthnApp.username = "adam";
-            webauthnApp.sendLoginResponse(testCred)
-                .then(function(res) {
+        it("rejects on server msg failed", (done) => {
+            serverFake("/assertion/result", fido2Helpers.server.errorServerResponse);
+            app.username = "adam";
+            app.sendLoginResult(testCred)
+                .then((res) => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "out of memory");
                     done();
@@ -663,71 +663,67 @@ describe("WebAuthnApp", function() {
 
     });
 
-    describe("webAuthnCreate", function() {
-        var opts = CreationOptions.from(fido2Helpers.functions.cloneObject(fido2Helpers.server.basicCreationOptions));
+    describe("create", () => {
+        var opts = CreateOptions.from(fido2Helpers.functions.cloneObject(fido2Helpers.server.basicCreationOptions));
         var result = fido2Helpers.lib.makeCredentialAttestationU2fResponse;
         var createSpy;
-        beforeEach(function() {
+        beforeEach(() => {
             createSpy = sinon.stub(navigator.credentials, "create");
             createSpy.returns(Promise.resolve(result));
         });
-        afterEach(function() {
+        afterEach(() => {
             navigator.credentials.create.restore();
         });
 
-        it("passes with basic options", function() {
-            return webauthnApp.webAuthnCreate(opts);
-        });
+        it("passes with basic options", () => app.create(opts));
 
-        it("returns promise", function() {
-            var p = webauthnApp.webAuthnCreate(opts);
+        it("returns promise", () => {
+            var p = app.create(opts);
             assert.instanceOf(p, Promise);
         });
 
-        it("throws when argument isn't CreationOptions", function() {
-            assert.throws(function() {
-                webauthnApp.webAuthnCreate({});
-            }, Error, "expected 'options' to be instance of CreationOptions");
+        it("throws when argument isn't CreateOptions", () => {
+            assert.throws(() => {
+                app.create({});
+            }, Error, "expected 'options' to be instance of CreateOptions");
         });
 
-        it("calls navigator.credentials.create", function() {
-            return webauthnApp.webAuthnCreate(opts)
-                .then(function(res) {
-                    assert.strictEqual(createSpy.callCount, 1);
-                    assert.strictEqual(createSpy.args[0].length, 1);
-                    assert.isObject(createSpy.args[0][0]);
-                    var pk = createSpy.args[0][0].publicKey;
-                    assert.isObject(pk);
-                    assert.strictEqual(Object.keys(pk).length, 4);
-                    assert.instanceOf(pk.challenge, ArrayBuffer);
-                    assert.isArray(pk.pubKeyCredParams);
-                    assert.isObject(pk.rp);
-                    assert.isObject(pk.user);
-                    assert.strictEqual(res, result);
-                });
-        });
+        it("calls navigator.credentials.create", () => app.create(opts)
+            .then((res) => {
+                assert.strictEqual(createSpy.callCount, 1);
+                assert.strictEqual(createSpy.args[0].length, 1);
+                assert.isObject(createSpy.args[0][0]);
+                var pk = createSpy.args[0][0].publicKey;
+                assert.isObject(pk);
+                assert.strictEqual(Object.keys(pk).length, 4);
+                assert.instanceOf(pk.challenge, ArrayBuffer);
+                assert.isArray(pk.pubKeyCredParams);
+                assert.isObject(pk.rp);
+                assert.isObject(pk.user);
+                assert.strictEqual(res, result);
+            }));
 
-        it("fires user presence start event", function() {
+        it("fires user presence start event", () => {
             var p = catchEvent("webauthn-user-presence-start", () => true);
-            webauthnApp.webAuthnCreate(opts);
+            app.create(opts);
             return p;
         });
 
-        it("fires user user presence end event on success", function() {
+        it("fires user user presence end event on success", () => {
             var p = catchEvent("webauthn-user-presence-done", () => true);
-            webauthnApp.webAuthnCreate(opts);
+            app.create(opts);
             return p;
         });
 
-        it("fires user user presence end event on failure", function() {
+        it("fires user user presence end event on failure", () => {
             var err = new Error("out of memory");
             createSpy.returns(Promise.reject(err));
             var p = catchEvent("webauthn-user-presence-done", () => true);
-            webauthnApp.webAuthnCreate(opts).catch(() => {});
+            app.create(opts).catch(() => {});
             return p;
         });
 
-        it("fires debug event for options", function() {
+        it("fires debug event for options", () => {
             function eventHandler(event) {
                 if (event.detail.subtype !== "create-options") {
                     return false;
@@ -740,11 +736,11 @@ describe("WebAuthnApp", function() {
             }
 
             var p = catchEvent("webauthn-debug", eventHandler);
-            webauthnApp.webAuthnCreate(opts);
+            app.create(opts);
             return p;
         });
 
-        it("fires debug event for results", function() {
+        it("fires debug event for results", () => {
             function eventHandler(event) {
                 if (event.detail.subtype !== "create-result") {
                     // wait for next event
@@ -757,11 +753,11 @@ describe("WebAuthnApp", function() {
             }
 
             var p = catchEvent("webauthn-debug", eventHandler);
-            webauthnApp.webAuthnCreate(opts);
+            app.create(opts);
             return p;
         });
 
-        it("fires debug event for error", function() {
+        it("fires debug event for error", () => {
             var err = new Error("out of memory");
             createSpy.returns(Promise.reject(err));
 
@@ -777,73 +773,69 @@ describe("WebAuthnApp", function() {
             }
 
             var p = catchEvent("webauthn-debug", eventHandler);
-            webauthnApp.webAuthnCreate(opts).catch(() => {});
+            app.create(opts).catch(() => {});
             return p;
         });
     });
 
-    describe("webAuthnGet", function() {
+    describe("get", () => {
         var opts = GetOptions.from(fido2Helpers.functions.cloneObject(fido2Helpers.server.basicGetOptions));
         var result = fido2Helpers.lib.assertionResponse;
         var createSpy;
-        beforeEach(function() {
+        beforeEach(() => {
             createSpy = sinon.stub(navigator.credentials, "get");
             createSpy.returns(Promise.resolve(result));
         });
-        afterEach(function() {
+        afterEach(() => {
             navigator.credentials.get.restore();
         });
 
-        it("passes with basic options", function() {
-            return webauthnApp.webAuthnGet(opts);
-        });
+        it("passes with basic options", () => app.get(opts));
 
-        it("returns promise", function() {
-            var p = webauthnApp.webAuthnGet(opts);
+        it("returns promise", () => {
+            var p = app.get(opts);
             assert.instanceOf(p, Promise);
         });
 
-        it("throws when argument isn't GetOptions", function() {
-            assert.throws(function() {
-                webauthnApp.webAuthnGet({});
+        it("throws when argument isn't GetOptions", () => {
+            assert.throws(() => {
+                app.get({});
             }, Error, "expected 'options' to be instance of GetOptions");
         });
 
-        it("calls navigator.credentials.get", function() {
-            return webauthnApp.webAuthnGet(opts)
-                .then(function(res) {
-                    assert.strictEqual(createSpy.callCount, 1);
-                    assert.strictEqual(createSpy.args[0].length, 1);
-                    assert.isObject(createSpy.args[0][0]);
-                    var pk = createSpy.args[0][0].publicKey;
-                    assert.isObject(pk);
-                    assert.strictEqual(Object.keys(pk).length, 1);
-                    assert.instanceOf(pk.challenge, ArrayBuffer);
-                    assert.strictEqual(res, result);
-                });
-        });
+        it("calls navigator.credentials.get", () => app.get(opts)
+            .then((res) => {
+                assert.strictEqual(createSpy.callCount, 1);
+                assert.strictEqual(createSpy.args[0].length, 1);
+                assert.isObject(createSpy.args[0][0]);
+                var pk = createSpy.args[0][0].publicKey;
+                assert.isObject(pk);
+                assert.strictEqual(Object.keys(pk).length, 1);
+                assert.instanceOf(pk.challenge, ArrayBuffer);
+                assert.strictEqual(res, result);
+            }));
 
-        it("fires user presence start event", function() {
+        it("fires user presence start event", () => {
             var p = catchEvent("webauthn-user-presence-start", () => true);
-            webauthnApp.webAuthnGet(opts);
+            app.get(opts);
             return p;
         });
 
-        it("fires user user presence end event on success", function() {
+        it("fires user user presence end event on success", () => {
             var p = catchEvent("webauthn-user-presence-done", () => true);
-            webauthnApp.webAuthnGet(opts);
+            app.get(opts);
             return p;
         });
 
-        it("fires user user presence end event on failure", function() {
+        it("fires user user presence end event on failure", () => {
             var err = new Error("out of memory");
             createSpy.returns(Promise.reject(err));
             var p = catchEvent("webauthn-user-presence-done", () => true);
-            webauthnApp.webAuthnGet(opts).catch(() => {});
+            app.get(opts).catch(() => {});
             return p;
         });
 
-        it("fires debug event for options", function() {
+        it("fires debug event for options", () => {
             function eventHandler(event) {
                 if (event.detail.subtype !== "get-options") {
                     // wait for next event
@@ -857,11 +849,11 @@ describe("WebAuthnApp", function() {
             }
 
             var p = catchEvent("webauthn-debug", eventHandler);
-            webauthnApp.webAuthnGet(opts);
+            app.get(opts);
             return p;
         });
 
-        it("fires debug event for results", function() {
+        it("fires debug event for results", () => {
             function eventHandler(event) {
                 if (event.detail.subtype !== "get-result") {
                     // wait for next event
@@ -874,11 +866,11 @@ describe("WebAuthnApp", function() {
             }
 
             var p = catchEvent("webauthn-debug", eventHandler);
-            webauthnApp.webAuthnGet(opts);
+            app.get(opts);
             return p;
         });
 
-        it("fires debug event for error", function() {
+        it("fires debug event for error", () => {
             var err = new Error("out of memory");
             createSpy.returns(Promise.reject(err));
 
@@ -894,15 +886,15 @@ describe("WebAuthnApp", function() {
             }
 
             var p = catchEvent("webauthn-debug", eventHandler);
-            webauthnApp.webAuthnGet(opts).catch(() => {});
+            app.get(opts).catch(() => {});
             return p;
         });
     });
 
-    describe("register", function() {
+    describe("register", () => {
         var serverFake = serverMock();
         var createMock;
-        beforeEach(function() {
+        beforeEach(() => {
             var testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.makeCredentialAttestationU2fResponse);
             Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             testCred.response = fido2Helpers.lib.makeCredentialAttestationU2fResponse.response;
@@ -910,36 +902,36 @@ describe("WebAuthnApp", function() {
             createMock.returns(Promise.resolve(testCred));
         });
 
-        afterEach(function() {
+        afterEach(() => {
             navigator.credentials.create.restore();
         });
 
-        it("returns promise", function() {
-            var p = webauthnApp.register().catch(() => {});
+        it("returns promise", () => {
+            var p = app.register().catch(() => {});
             assert.instanceOf(p, Promise);
         });
 
-        it("can complete registration", function() {
+        it("can complete registration", () => {
             // options
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
 
-            return webauthnApp.register();
+            return app.register();
         });
 
-        it("resolves to true", function() {
+        it("resolves to true", () => {
             // options
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
 
-            return webauthnApp.register()
-                .then(function(res) {
+            return app.register()
+                .then((res) => {
                     assert.isObject(res);
                     assert.instanceOf(res, ServerResponse);
                     assert.strictEqual(res.status, "ok");
@@ -947,147 +939,147 @@ describe("WebAuthnApp", function() {
                 });
         });
 
-        it("fails on failed option request", function(done) {
+        it("fails on failed option request", (done) => {
             // options
-            // serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            // serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
 
-            webauthnApp.register()
-                .then(function() {
+            app.register()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "server returned status: 404");
                     done();
                 });
         });
 
-        it("fails on failed cred create", function(done) {
+        it("fails on failed cred create", (done) => {
             // options
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.basicCreationOptions);
+            serverFake("/attestation/result", fido2Helpers.server.basicCreationOptions);
 
             // get
             createMock.returns(Promise.reject(new Error("hamsters too tired")));
 
-            return webauthnApp.register()
-                .then(function(res) {
+            return app.register()
+                .then((res) => {
                     console.log("res", res);
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "hamsters too tired");
                     done();
                 });
         });
 
-        it("fails on failed result", function(done) {
+        it("fails on failed result", (done) => {
             // options
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            // serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
+            // serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
 
-            webauthnApp.register()
-                .then(function() {
+            app.register()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "server returned status: 404");
                     done();
                 });
         });
 
-        it("fails on status: failed from server", function(done) {
+        it("fails on status: failed from server", (done) => {
             // options
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.errorServerResponse);
+            serverFake("/attestation/result", fido2Helpers.server.errorServerResponse);
 
-            webauthnApp.register()
-                .then(function() {
+            app.register()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "out of memory");
                     done();
                 });
         });
 
-        it("fires webauthn-register-start", function() {
+        it("fires webauthn-register-start", () => {
             // options
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
 
             var p = catchEvent("webauthn-register-start", () => true);
-            webauthnApp.register();
+            app.register();
             return p;
         });
 
-        it("fires webauthn-register-done on success", function() {
+        it("fires webauthn-register-done on success", () => {
             // options
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
 
             var p = catchEvent("webauthn-register-done", () => true);
-            webauthnApp.register();
+            app.register();
             return p;
         });
 
-        it("fires webauthn-register-error", function() {
+        it("fires webauthn-register-error", () => {
             // options
-            // serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            // serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
 
-            var p = catchEvent("webauthn-register-error", function(err) {
+            var p = catchEvent("webauthn-register-error", (err) => {
                 assert.instanceOf(err.detail, Error);
                 assert.strictEqual(err.detail.message, "server returned status: 404");
                 return true;
             });
-            webauthnApp.register().catch(() => {});
+            app.register().catch(() => {});
             return p;
         });
 
-        it("fires webauthn-register-success", function() {
+        it("fires webauthn-register-success", () => {
             // options
-            serverFake("/webauthn/register/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            serverFake("/attestation/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/register/response", fido2Helpers.server.successServerResponse);
+            serverFake("/attestation/result", fido2Helpers.server.successServerResponse);
 
             var p = catchEvent("webauthn-register-success", () => true);
-            webauthnApp.register();
+            app.register();
             return p;
         });
     });
 
-    describe("login", function() {
+    describe("login", () => {
         var serverFake = serverMock();
         var getMock;
-        beforeEach(function() {
+        beforeEach(() => {
             var testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.assertionResponse);
             Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             testCred.response = fido2Helpers.lib.assertionResponse.response;
@@ -1095,36 +1087,36 @@ describe("WebAuthnApp", function() {
             getMock.returns(Promise.resolve(testCred));
         });
 
-        afterEach(function() {
+        afterEach(() => {
             navigator.credentials.get.restore();
         });
 
-        it("returns promise", function() {
-            var p = webauthnApp.login().catch(() => {});
+        it("returns promise", () => {
+            var p = app.login().catch(() => {});
             assert.instanceOf(p, Promise);
         });
 
-        it("can complete login", function() {
+        it("can complete login", () => {
             // options
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
 
-            return webauthnApp.login();
+            return app.login();
         });
 
-        it("resolves to true", function() {
+        it("resolves to true", () => {
             // options
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
 
-            return webauthnApp.login()
-                .then(function(res) {
+            return app.login()
+                .then((res) => {
                     assert.isObject(res);
                     assert.instanceOf(res, ServerResponse);
                     assert.strictEqual(res.status, "ok");
@@ -1132,139 +1124,139 @@ describe("WebAuthnApp", function() {
                 });
         });
 
-        it("fails on failed option request", function(done) {
+        it("fails on failed option request", (done) => {
             // options
-            // serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            // serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
 
-            webauthnApp.login()
-                .then(function() {
+            app.login()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "server returned status: 404");
                     done();
                 });
         });
 
-        it("fails on failed cred get", function(done) {
+        it("fails on failed cred get", (done) => {
             // options
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.basicCreationOptions);
+            serverFake("/assertion/result", fido2Helpers.server.basicCreationOptions);
 
             // get
             getMock.returns(Promise.reject(new Error("hamsters too tired")));
 
-            return webauthnApp.login()
-                .then(function(res) {
+            return app.login()
+                .then((res) => {
                     console.log("res", res);
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "hamsters too tired");
                     done();
                 });
         });
 
-        it("fails on failed result", function(done) {
+        it("fails on failed result", (done) => {
             // options
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            // serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
+            // serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
 
-            webauthnApp.login()
-                .then(function() {
+            app.login()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "server returned status: 404");
                     done();
                 });
         });
 
-        it("fails on status: failed from server", function(done) {
+        it("fails on status: failed from server", (done) => {
             // options
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.errorServerResponse);
+            serverFake("/assertion/result", fido2Helpers.server.errorServerResponse);
 
-            webauthnApp.login()
-                .then(function() {
+            app.login()
+                .then(() => {
                     done(new Error("should have rejected"));
                 })
-                .catch(function(err) {
+                .catch((err) => {
                     assert.instanceOf(err, Error);
                     assert.strictEqual(err.message, "out of memory");
                     done();
                 });
         });
 
-        it("fires webauthn-login-start", function() {
+        it("fires webauthn-login-start", () => {
             // options
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
 
             var p = catchEvent("webauthn-login-start", () => true);
-            webauthnApp.login();
+            app.login();
             return p;
         });
 
-        it("fires webauthn-login-done on success", function() {
+        it("fires webauthn-login-done on success", () => {
             // options
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
 
             var p = catchEvent("webauthn-login-done", () => true);
-            webauthnApp.login();
+            app.login();
             return p;
         });
 
-        it("fires webauthn-login-error", function() {
+        it("fires webauthn-login-error", () => {
             // options
-            // serverFake("/webauthn/login/challenge", fido2Helpers.server.basicCreationOptions);
-            webauthnApp.username = "adam";
+            // serverFake("/assertion/options", fido2Helpers.server.basicCreationOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
 
-            var p = catchEvent("webauthn-login-error", function(err) {
+            var p = catchEvent("webauthn-login-error", (err) => {
                 assert.instanceOf(err.detail, Error);
                 assert.strictEqual(err.detail.message, "server returned status: 404");
                 return true;
             });
-            webauthnApp.login().catch(() => {});
+            app.login().catch(() => {});
             return p;
         });
 
-        it("fires webauthn-login-success", function() {
+        it("fires webauthn-login-success", () => {
             // options
-            serverFake("/webauthn/login/challenge", fido2Helpers.server.basicGetOptions);
-            webauthnApp.username = "adam";
+            serverFake("/assertion/options", fido2Helpers.server.basicGetOptions);
+            app.username = "adam";
 
             // result
-            serverFake("/webauthn/login/response", fido2Helpers.server.successServerResponse);
+            serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
 
             var p = catchEvent("webauthn-login-success", () => true);
-            webauthnApp.login();
+            app.login();
             return p;
         });
     });
