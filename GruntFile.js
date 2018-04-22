@@ -83,7 +83,7 @@ module.exports = function(grunt) {
             all: {
                 options: {
                     urls: [
-                        "http://saucelabs.test:9999/test/browser/test.html"
+                        "http://localhost:9999/test/browser/test.html"
                     ],
                     browsers: browsers,
                     build: process.env.TRAVIS_JOB_ID,
