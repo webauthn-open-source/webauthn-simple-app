@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>GetOptions - Documentation</title>
+    <title>WebAuthn - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -27,7 +27,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">GetOptions</h1>
+    <h1 class="page-title">WebAuthn</h1>
     
 
     
@@ -40,10 +40,8 @@
 <header>
     
         <h2>
-        GetOptions
+        WebAuthn
         </h2>
-        
-            <div class="class-description"><p>The options to be used for WebAuthn <code>get()</code></p></div>
         
     
 </header>
@@ -54,10 +52,8 @@
         
 
     
-    <h2>Constructor</h2>
-    
 
-    <h4 class="name" id="GetOptions"><span class="type-signature"></span>new GetOptions<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="WebAuthn"><span class="type-signature"></span>new WebAuthn<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
@@ -69,7 +65,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line337">line 337</a>
+        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line994">line 994</a>
     </li></ul></dd>
     
 
@@ -107,6 +103,12 @@
 
 
 
+
+<div class="description">
+    <p>This class refers to the dictionaries and interfaces defined in the
+<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/">www.w3.org/TR/webauthn/</a> WebAuthn specification</a> that are
+used by the <a href="WebAuthnApp.html">WebAuthnApp</a> class. They are included here for reference.</p>
+</div>
 
 
 
@@ -136,17 +138,6 @@
     </div>
 
     
-        <h3 class="subsection-title">Extends</h3>
-
-        
-
-
-    <ul>
-        <li><a href="ServerResponse.html">ServerResponse</a></li>
-    </ul>
-
-
-    
 
     
 
@@ -157,11 +148,15 @@
     
 
     
-        <h3 class="subsection-title">Members</h3>
+
+    
+
+    
+        <h3 class="subsection-title">Type Definitions</h3>
 
         
-            
-<h4 class="name" id="propList"><span class="type-signature"></span>propList<span class="type-signature"> :Array</span></h4>
+                
+<h4 class="name" id="AuthenticatorAssertionResponse">AuthenticatorAssertionResponse</h4>
 
 
 
@@ -172,7 +167,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line31">line 31</a>
+        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line1010">line 1010</a>
     </li></ul></dd>
     
 
@@ -182,11 +177,6 @@
 
     
 
-    
-    <dt class="tag-overrides">Overrides:</dt>
-    <dd class="tag-overrides"><ul class="dummy"><li>
-        <a href="ServerResponse.html#propList">ServerResponse#propList</a>
-    </li></ul></dd>
     
 
     
@@ -217,7 +207,9 @@
 
 
 <div class="description">
-    <p>The list of &quot;official&quot; properties that are managed for this object and sent over the wire.</p>
+    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
+that has been created by an authenticator, where the <code>response</code> field contains a
+<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorassertionresponse">www.w3.org/TR/webauthn/#authenticatorassertionresponse</a> AuthenticatorAssertionResponse</a>.</p>
 </div>
 
 
@@ -226,7 +218,7 @@
     <ul>
         <li>
             
-<span class="param-type">Array</span>
+<span class="param-type">Object</span>
 
 
         </li>
@@ -237,20 +229,10 @@
 
 
 
-        
-    
-
-    
-        <h3 class="subsection-title">Methods</h3>
-
-        
             
+                
+<h4 class="name" id="AuthenticatorAttesationResponse">AuthenticatorAttesationResponse</h4>
 
-    
-
-    <h4 class="name" id="decodeBinaryProperties"><span class="type-signature"></span>decodeBinaryProperties<span class="signature">()</span><span class="type-signature"></span></h4>
-
-    
 
 
 
@@ -260,7 +242,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line71">line 71</a>
+        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line1002">line 1002</a>
     </li></ul></dd>
     
 
@@ -268,189 +250,6 @@
 
     
 
-    
-
-    
-    <dt class="tag-overrides">Overrides:</dt>
-    <dd class="tag-overrides"><ul class="dummy"><li>
-        <a href="ServerResponse.html#decodeBinaryProperties">ServerResponse#decodeBinaryProperties</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>Any fields that are known to be encoded as <code>base64url</code> are decoded to an <code>ArrayBuffer</code></p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="encodeBinaryProperties"><span class="type-signature"></span>encodeBinaryProperties<span class="signature">()</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line78">line 78</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-overrides">Overrides:</dt>
-    <dd class="tag-overrides"><ul class="dummy"><li>
-        <a href="ServerResponse.html#encodeBinaryProperties">ServerResponse#encodeBinaryProperties</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>Any fields that are known to be encoded as an <code>ArrayBuffer</code> are encoded as <code>base64url</code></p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="toHumanString"><span class="type-signature"></span>toHumanString<span class="signature">()</span><span class="type-signature"> &rarr; {String}</span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line56">line 56</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="Msg.html#toHumanString">Msg#toHumanString</a>
-    </li></ul></dd>
     
 
     
@@ -483,398 +282,29 @@
 
 
 <div class="description">
-    <p>Converts the <code>Msg</code> to a human-readable string. Useful for debugging messages as they are being sent / received.</p>
+    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
+that has been created by an authenticator, where the <code>response</code> field contains a
+<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorattestationresponse">www.w3.org/TR/webauthn/#authenticatorattestationresponse</a> AuthenticatorAttesationResponse</a>.</p>
 </div>
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>The human-readable message, probably multiple lines.</p>
-</div>
-
-
-
-<dl class="param-type">
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">String</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-        
+    <h5>Type:</h5>
+    <ul>
+        <li>
             
-
-    
-
-    <h4 class="name" id="toObject"><span class="type-signature"></span>toObject<span class="signature">()</span><span class="type-signature"> &rarr; {Object}</span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line38">line 38</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="Msg.html#toObject">Msg#toObject</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>Converts the <code>Msg</code> to an <code>Object</code> containing all the properties in <code>propList</code> that have been defined on the <code>Msg</code></p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>An <code>Object</code> that contains all the properties to be sent over the wire.</p>
-</div>
-
-
-
-<dl class="param-type">
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
 <span class="param-type">Object</span>
 
 
-    </dd>
-</dl>
-
-    
+        </li>
+    </ul>
 
 
-        
+
+
+
+
             
-
-    
-
-    <h4 class="name" id="toString"><span class="type-signature"></span>toString<span class="signature">()</span><span class="type-signature"> &rarr; {String}</span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line48">line 48</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="Msg.html#toString">Msg#toString</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>Converts the <code>Msg</code> to a JSON string containing all the properties in <code>propList</code> that have been defined on the <code>Msg</code></p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>A JSON <code>String</code> that contains all the properties to be sent over the wire.</p>
-</div>
-
-
-
-<dl class="param-type">
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">String</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="validate"><span class="type-signature"></span>validate<span class="signature">()</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="webauthn-simple-app.js.html">webauthn-simple-app.js</a>, <a href="webauthn-simple-app.js.html#line64">line 64</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-overrides">Overrides:</dt>
-    <dd class="tag-overrides"><ul class="dummy"><li>
-        <a href="ServerResponse.html#validate">ServerResponse#validate</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>Ensures that all the required properties in the object are defined, and all defined properties are of the correct format.</p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-
-        
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If any required field is undefined, or any defined field is of the wrong format.</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-
-    
-
-
-
-
-        
-    
-
     
 
     
