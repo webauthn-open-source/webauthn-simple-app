@@ -257,7 +257,7 @@
         }
 
         encodeBinaryProperties() {
-            if (this.user.id) {
+            if (this.user && this.user.id) {
                 this.user.id = coerceToBase64Url(this.user.id, "user.id");
             }
 
