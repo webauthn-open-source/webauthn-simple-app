@@ -126,7 +126,8 @@
 
             this.propList = [
                 "status",
-                "errorMessage"
+                "errorMessage",
+                "debugInfo"
             ];
         }
 
@@ -139,6 +140,7 @@
 
                     // if status is "ok", errorMessage must be ""
                     checkTrue(this.errorMessage === "", "errorMessage must be empty string when status is 'ok'");
+                    checkOptionalType(this, "debugInfo", "object");
                     break;
 
                 case "failed":
@@ -148,6 +150,7 @@
                         this.errorMessage.length > 0,
                         "errorMessage must be non-zero length when status is 'failed'"
                     );
+                    checkOptionalType(this, "debugInfo", "object");
                     break;
 
                 // status is string, either "ok" or "failed"
@@ -156,9 +159,31 @@
             }
         }
 
-        decodeBinaryProperties() {}
+        decodeBinaryProperties() {
+            if (typeof this.debugInfo === "object") {
+                this.debugInfo.clientData.rawClientDataJson = str2ab(this.debugInfo.clientData.rawClientDataJson);
+                this.debugInfo.clientData.rawId = coerceToArrayBuffer(this.debugInfo.clientData.rawId);
+                this.debugInfo.authnrData.rawAuthnrData = coerceToArrayBuffer(this.debugInfo.authnrData.rawAuthnrData);
+                this.debugInfo.authnrData.rpIdHash = coerceToArrayBuffer(this.debugInfo.authnrData.rpIdHash);
+                if (this.debugInfo.authnrData.aaguid !== undefined) this.debugInfo.authnrData.aaguid = coerceToArrayBuffer(this.debugInfo.authnrData.aaguid);
+                if (this.debugInfo.authnrData.credId !== undefined) this.debugInfo.authnrData.credId = coerceToArrayBuffer(this.debugInfo.authnrData.credId);
+                if (this.debugInfo.authnrData.credentialPublicKeyCose !== undefined) this.debugInfo.authnrData.credentialPublicKeyCose = coerceToArrayBuffer(this.debugInfo.authnrData.credentialPublicKeyCose);
+                this.debugInfo.authnrData.flags = new Set([...this.debugInfo.authnrData.flags]);
+            }
+        }
 
-        encodeBinaryProperties() {}
+        encodeBinaryProperties() {
+            if (typeof this.debugInfo === "object") {
+                this.debugInfo.clientData.rawClientDataJson = ab2str(this.debugInfo.clientData.rawClientDataJson, "clientData.rawClientDataJson");
+                this.debugInfo.clientData.rawId = coerceToBase64Url(this.debugInfo.clientData.rawId, "clientData.rawId");
+                this.debugInfo.authnrData.rawAuthnrData = coerceToBase64Url(this.debugInfo.authnrData.rawAuthnrData, "authnrData.rawAuthnrData");
+                this.debugInfo.authnrData.rpIdHash = coerceToBase64Url(this.debugInfo.authnrData.rpIdHash, "authnrData.rpIdHash");
+                if (this.debugInfo.authnrData.aaguid !== undefined) this.debugInfo.authnrData.aaguid = coerceToBase64Url(this.debugInfo.authnrData.aaguid, "authnrData.aaguid");
+                if (this.debugInfo.authnrData.credId !== undefined) this.debugInfo.authnrData.credId = coerceToBase64Url(this.debugInfo.authnrData.credId, "authnrData.credId");
+                if (this.debugInfo.authnrData.credentialPublicKeyCose !== undefined) this.debugInfo.authnrData.credentialPublicKeyCose = coerceToBase64Url(this.debugInfo.authnrData.credentialPublicKeyCose, "authnrData.credentialPublicKeyCose");
+                this.debugInfo.authnrData.flags = [...this.debugInfo.authnrData.flags];
+            }
+        }
     }
 
     /**
@@ -281,12 +306,14 @@
 
             this.propList = [
                 "rawId",
+                "id",
                 "response"
             ];
         }
 
         validate() {
             checkFormat(this, "rawId", "base64url");
+            checkOptionalFormat(this, "id", "base64url");
             checkType(this, "response", Object);
             checkFormat(this.response, "attestationObject", "base64url");
             checkFormat(this.response, "clientDataJSON", "base64url");
@@ -294,12 +321,14 @@
 
         decodeBinaryProperties() {
             this.rawId = coerceToArrayBuffer(this.rawId, "rawId");
+            if (this.id) this.id = coerceToArrayBuffer(this.id, "id");
             this.response.attestationObject = coerceToArrayBuffer(this.response.attestationObject, "response.attestationObject");
             this.response.clientDataJSON = coerceToArrayBuffer(this.response.clientDataJSON, "response.clientDataJSON");
         }
 
         encodeBinaryProperties() {
             this.rawId = coerceToBase64Url(this.rawId, "rawId");
+            if (this.id) this.id = coerceToBase64Url(this.id, "id");
             this.response.attestationObject = coerceToBase64Url(this.response.attestationObject, "response.attestationObject");
             this.response.clientDataJSON = coerceToBase64Url(this.response.clientDataJSON, "response.clientDataJSON");
         }
@@ -388,12 +417,14 @@
 
             this.propList = [
                 "rawId",
+                "id",
                 "response"
             ];
         }
 
         validate() {
             checkFormat(this, "rawId", "base64url");
+            checkOptionalFormat(this, "id", "base64url");
             checkType(this, "response", Object);
             checkFormat(this.response, "authenticatorData", "base64url");
             checkFormat(this.response, "clientDataJSON", "base64url");
@@ -403,6 +434,7 @@
 
         decodeBinaryProperties() {
             this.rawId = coerceToArrayBuffer(this.rawId, "rawId");
+            if (this.id) this.id = coerceToArrayBuffer(this.id, "id");
             this.response.clientDataJSON = coerceToArrayBuffer(this.response.clientDataJSON, "response.clientDataJSON");
             this.response.signature = coerceToArrayBuffer(this.response.signature, "response.signature");
             this.response.authenticatorData = coerceToArrayBuffer(this.response.authenticatorData, "response.authenticatorData");
@@ -416,6 +448,7 @@
 
         encodeBinaryProperties() {
             this.rawId = coerceToBase64Url(this.rawId, "rawId");
+            if (this.id) this.id = coerceToBase64Url(this.id, "id");
             this.response.clientDataJSON = coerceToBase64Url(this.response.clientDataJSON, "response.clientDataJSON");
             this.response.signature = coerceToBase64Url(this.response.signature, "response.signature");
             this.response.authenticatorData = coerceToBase64Url(this.response.authenticatorData, "response.authenticatorData");
@@ -586,6 +619,19 @@
         };
     }
 
+    function ab2str(buf) {
+        return String.fromCharCode.apply(null, new Uint8Array(buf));
+    }
+
+    function str2ab(str) {
+        var buf = new ArrayBuffer(str.length);
+        var bufView = new Uint8Array(buf);
+        for (var i = 0, strLen = str.length; i < strLen; i++) {
+            bufView[i] = str.charCodeAt(i);
+        }
+        return buf;
+    }
+
     function copyProp(src, dst, prop) {
         if (src[prop] !== undefined) dst[prop] = src[prop];
     }
@@ -740,7 +786,6 @@
      */
     class WebAuthnApp {
         constructor(config) {
-            console.log("constructor");
             // check for browser; throw error and fail if not browser
             if (!WebAuthnHelpers.utils.isBrowser()) throw new Error("WebAuthnApp must be run from a browser");
 

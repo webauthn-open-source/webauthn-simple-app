@@ -440,6 +440,8 @@ describe("WebAuthnApp", () => {
             testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.makeCredentialAttestationU2fResponse);
             Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             // ArrayBuffers don't get copied
+            testCred.rawId = fido2Helpers.lib.makeCredentialAttestationU2fResponse.rawId;
+            testCred.id = undefined;
             testCred.response = fido2Helpers.lib.makeCredentialAttestationU2fResponse.response;
         });
         afterEach(() => {
@@ -593,13 +595,15 @@ describe("WebAuthnApp", () => {
             testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.assertionResponse);
             Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             // ArrayBuffers don't get copied
+            testCred.rawId = fido2Helpers.lib.assertionResponse.rawId;
+            testCred.id = undefined;
             testCred.response = fido2Helpers.lib.assertionResponse.response;
         });
         afterEach(() => {
             app.send.restore();
         });
 
-        it("can get login options", () => {
+        it("can send result", () => {
             serverFake("/assertion/result", fido2Helpers.server.successServerResponse);
             app.username = "adam";
             return app
@@ -897,6 +901,9 @@ describe("WebAuthnApp", () => {
         beforeEach(() => {
             var testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.makeCredentialAttestationU2fResponse);
             Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
+            // ArrayBuffers don't get copied
+            testCred.rawId = fido2Helpers.lib.makeCredentialAttestationU2fResponse.rawId;
+            testCred.id = undefined;
             testCred.response = fido2Helpers.lib.makeCredentialAttestationU2fResponse.response;
             createMock = sinon.stub(navigator.credentials, "create");
             createMock.returns(Promise.resolve(testCred));
@@ -1082,6 +1089,9 @@ describe("WebAuthnApp", () => {
         beforeEach(() => {
             var testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.assertionResponse);
             Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
+            // ArrayBuffers don't get copied
+            testCred.rawId = fido2Helpers.lib.assertionResponse.rawId;
+            testCred.id = undefined;
             testCred.response = fido2Helpers.lib.assertionResponse.response;
             getMock = sinon.stub(navigator.credentials, "get");
             getMock.returns(Promise.resolve(testCred));

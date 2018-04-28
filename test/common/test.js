@@ -333,7 +333,7 @@ describe("ServerResponse", () => {
     it("has right properties", () => {
         var msg = new ServerResponse();
 
-        assert.deepEqual(msg.propList, ["status", "errorMessage"]);
+        assert.deepEqual(msg.propList, ["status", "errorMessage", "debugInfo"]);
     });
 
     it("converts correctly", () => {
@@ -434,6 +434,121 @@ describe("ServerResponse", () => {
                 status: "failed",
             });
             msg.encodeBinaryProperties();
+        });
+    });
+
+    describe("debugInfo", function() {
+        var debugInfo;
+        beforeEach(function() {
+            debugInfo =
+            {
+                clientData: {
+                    challenge: "33EHav-jZ1v9qwH783aU-j0ARx6r5o-YHh-wd7C6jPbd7Wh6ytbIZosIIACehwf9-s6hXhySHO-HHUjEwZS29w",
+                    origin: "https://localhost:8443",
+                    type: "webauthn.create",
+                    tokenBinding: undefined,
+                    rawClientDataJson: new ArrayBuffer(),
+                    rawId: new ArrayBuffer()
+                },
+                authnrData: {
+                    fmt: "none",
+                    rawAuthnrData: new ArrayBuffer(),
+                    rpIdHash: new ArrayBuffer(),
+                    flags: new Set(["UP", "AT"]),
+                    counter: 0,
+                    aaguid: new ArrayBuffer(),
+                    credIdLen: 162,
+                    credId: new ArrayBuffer(),
+                    credentialPublicKeyCose: new ArrayBuffer(),
+                    credentialPublicKeyJwk: {
+                        kty: "EC",
+                        alg: "ECDSA_w_SHA256",
+                        crv: "P-256",
+                        x: "uxHN3W6ehp0VWXKaMNie1J82MVJCFZYScau74o17cx8=",
+                        y: "29Y5Ey4u5WGWW4MFMKagJPEJiIjzE1UFFZIRhMhqysM="
+                    },
+                    credentialPublicKeyPem: "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEuxHN3W6ehp0VWXKaMNie1J82MVJC\nFZYScau74o17cx/b1jkTLi7lYZZbgwUwpqAk8QmIiPMTVQUVkhGEyGrKww==\n-----END PUBLIC KEY-----\n"
+                }
+            };
+        });
+
+        it("is included", function() {
+            var msg = ServerResponse.from({
+                status: "ok",
+                debugInfo: debugInfo
+            });
+
+            assert.isObject(msg.debugInfo);
+            assert.isObject(msg.debugInfo.clientData);
+            assert.isObject(msg.debugInfo.authnrData);
+        });
+
+        it("validates", function() {
+            var msg = ServerResponse.from({
+                status: "ok",
+                debugInfo: debugInfo
+            });
+
+            msg.validate();
+        });
+
+        it("encodes correctly", function() {
+            var msg = ServerResponse.from({
+                status: "ok",
+                debugInfo: debugInfo
+            });
+
+            assert.instanceOf(msg.debugInfo.clientData.rawClientDataJson, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.clientData.rawId, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.rawAuthnrData, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.rpIdHash, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.aaguid, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.credId, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.credentialPublicKeyCose, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.flags, Set);
+            msg.encodeBinaryProperties();
+            assert.isString(msg.debugInfo.clientData.rawClientDataJson);
+            assert.isString(msg.debugInfo.clientData.rawId);
+            assert.isString(msg.debugInfo.authnrData.rawAuthnrData);
+            assert.isString(msg.debugInfo.authnrData.rpIdHash);
+            assert.isString(msg.debugInfo.authnrData.aaguid);
+            assert.isString(msg.debugInfo.authnrData.credId);
+            assert.isString(msg.debugInfo.authnrData.credentialPublicKeyCose);
+            assert.isArray(msg.debugInfo.authnrData.flags);
+        });
+
+        it("decodes correctly", function() {
+            var msg = ServerResponse.from({
+                status: "ok",
+                debugInfo: debugInfo
+            });
+
+            assert.instanceOf(msg.debugInfo.clientData.rawClientDataJson, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.clientData.rawId, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.rawAuthnrData, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.rpIdHash, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.aaguid, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.credId, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.credentialPublicKeyCose, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.flags, Set);
+            msg.encodeBinaryProperties();
+            assert.isString(msg.debugInfo.clientData.rawClientDataJson);
+            assert.isString(msg.debugInfo.clientData.rawId);
+            assert.isString(msg.debugInfo.authnrData.rawAuthnrData);
+            assert.isString(msg.debugInfo.authnrData.rpIdHash);
+            assert.isString(msg.debugInfo.authnrData.aaguid);
+            assert.isString(msg.debugInfo.authnrData.credId);
+            assert.isString(msg.debugInfo.authnrData.credentialPublicKeyCose);
+            assert.isArray(msg.debugInfo.authnrData.flags);
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.debugInfo.clientData.rawClientDataJson, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.clientData.rawId, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.rawAuthnrData, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.rpIdHash, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.aaguid, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.credId, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.credentialPublicKeyCose, ArrayBuffer);
+            assert.instanceOf(msg.debugInfo.authnrData.flags, Set);
         });
     });
 });
@@ -945,6 +1060,49 @@ describe("CredentialAttestation", () => {
             }, Error, "expected 'rawId' to be 'string', got: undefined");
         });
 
+        it("throws on empty id", () => {
+            testArgs.id = "";
+            var msg = CredentialAttestation.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'id' to be base64url format, got: ");
+        });
+
+        it("throws on non-base64url id", () => {
+            testArgs.id = "beer!";
+            var msg = CredentialAttestation.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'id' to be base64url format, got: ");
+        });
+
+        it("throws on base64 id", () => {
+            testArgs.id = "Bo+VjHOkJZy8DjnCJnIc0Oxt9QAz5upMdSJxNbd+GyAo6MNIvPBb9YsUlE0ZJaaWXtWH5FQyPS6bT/e698IirQ==";
+            var msg = CredentialAttestation.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'id' to be base64url format, got: ");
+        });
+
+        it("throws on wrong type id", () => {
+            testArgs.id = 42;
+            var msg = CredentialAttestation.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'id' to be 'string', got: number");
+        });
+
+        it("allows on missing id", () => {
+            delete testArgs.id;
+            var msg = CredentialAttestation.from(testArgs);
+
+            msg.validate();
+        });
+
         it("throws on empty rawId", () => {
             testArgs.rawId = "";
             var msg = CredentialAttestation.from(testArgs);
@@ -1094,10 +1252,12 @@ describe("CredentialAttestation", () => {
         it("decodes correct fields", () => {
             var msg = CredentialAttestation.from(fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
             assert.isString(msg.rawId);
+            assert.isString(msg.id);
             assert.isString(msg.response.attestationObject);
             assert.isString(msg.response.clientDataJSON);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.rawId, ArrayBuffer);
+            assert.instanceOf(msg.id, ArrayBuffer);
             assert.instanceOf(msg.response.attestationObject, ArrayBuffer);
             assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
         });
@@ -1108,10 +1268,12 @@ describe("CredentialAttestation", () => {
             var msg = CredentialAttestation.from(fido2Helpers.server.challengeResponseAttestationNoneMsgB64Url);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.rawId, ArrayBuffer);
+            assert.instanceOf(msg.id, ArrayBuffer);
             assert.instanceOf(msg.response.attestationObject, ArrayBuffer);
             assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
             msg.encodeBinaryProperties();
             assert.isString(msg.rawId);
+            assert.isString(msg.id);
             assert.isString(msg.response.attestationObject);
             assert.isString(msg.response.clientDataJSON);
         });
@@ -1505,6 +1667,32 @@ describe("CredentialAssertion", () => {
                 msg.validate();
             }, Error, "expected 'rawId' to be 'string', got: number");
         });
+
+        it("allows missing id", () => {
+            delete testArgs.id;
+            var msg = CredentialAssertion.from(testArgs);
+
+            msg.validate();
+        });
+
+        it("throws on empty id", () => {
+            testArgs.id = "";
+            var msg = CredentialAssertion.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'id' to be base64url format, got:");
+        });
+
+        it("throws on wrong type id", () => {
+            testArgs.id = 42;
+            var msg = CredentialAssertion.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'id' to be 'string', got: number");
+        });
+
 
         it("throws on missing response", () => {
             delete testArgs.response;
