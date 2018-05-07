@@ -330,7 +330,7 @@
         }
 
         decodeBinaryProperties() {
-            if (this.user.id) {
+            if (this.user && this.user.id) {
                 this.user.id = coerceToArrayBuffer(this.user.id, "user.id");
             }
 
@@ -1130,7 +1130,7 @@
             };
             args.publicKey.attestation = args.publicKey.attestation || "direct";
             delete args.publicKey.status;
-            delete args.publicKey.errorMsg;
+            delete args.publicKey.errorMessage;
 
             fireDebug("create-options", args);
             fireUserPresence("start");
@@ -1171,7 +1171,7 @@
                 publicKey: options.toObject()
             };
             delete args.publicKey.status;
-            delete args.publicKey.errorMsg;
+            delete args.publicKey.errorMessage;
 
             fireDebug("get-options", args);
             fireUserPresence("start");
