@@ -699,11 +699,12 @@ describe("WebAuthnApp", () => {
                 assert.isObject(createSpy.args[0][0]);
                 var pk = createSpy.args[0][0].publicKey;
                 assert.isObject(pk);
-                assert.strictEqual(Object.keys(pk).length, 4);
+                assert.strictEqual(Object.keys(pk).length, 5);
                 assert.instanceOf(pk.challenge, ArrayBuffer);
                 assert.isArray(pk.pubKeyCredParams);
                 assert.isObject(pk.rp);
                 assert.isObject(pk.user);
+                assert.strictEqual(pk.attestation, "direct");
                 assert.strictEqual(res, result);
             }));
 
@@ -734,8 +735,14 @@ describe("WebAuthnApp", () => {
                 }
                 var data = event.detail.data;
                 assert.isObject(data);
+                assert.strictEqual(Object.keys(data).length, 1);
                 assert.isObject(data.publicKey);
-                assert.strictEqual(Object.keys(data.publicKey).length, 4);
+                data = data.publicKey;
+                assert.isObject(data.user);
+                assert.isObject(data.rp);
+                assert.isArray(data.pubKeyCredParams);
+                assert.instanceOf(data.challenge, ArrayBuffer);
+                assert.strictEqual(data.attestation, "direct");
                 return true;
             }
 
@@ -766,7 +773,7 @@ describe("WebAuthnApp", () => {
             createSpy.returns(Promise.reject(err));
 
             function eventHandler(event) {
-                if (event.detail.subtype !== "create-failed") {
+                if (event.detail.subtype !== "create-error") {
                     // wait for next event
                     return false;
                 }
@@ -847,8 +854,10 @@ describe("WebAuthnApp", () => {
                 }
                 var data = event.detail.data;
                 assert.isObject(data);
+                assert.strictEqual(Object.keys(data).length, 1);
                 assert.isObject(data.publicKey);
-                assert.strictEqual(Object.keys(data.publicKey).length, 1);
+                data = data.publicKey;
+                assert.instanceOf(data.challenge, ArrayBuffer);
                 return true;
             }
 
@@ -879,7 +888,7 @@ describe("WebAuthnApp", () => {
             createSpy.returns(Promise.reject(err));
 
             function eventHandler(event) {
-                if (event.detail.subtype !== "get-failed") {
+                if (event.detail.subtype !== "get-error") {
                     // wait for next event
                     return false;
                 }
@@ -978,7 +987,6 @@ describe("WebAuthnApp", () => {
 
             return app.register()
                 .then((res) => {
-                    console.log("res", res);
                     done(new Error("should have rejected"));
                 })
                 .catch((err) => {
@@ -1166,7 +1174,6 @@ describe("WebAuthnApp", () => {
 
             return app.login()
                 .then((res) => {
-                    console.log("res", res);
                     done(new Error("should have rejected"));
                 })
                 .catch((err) => {

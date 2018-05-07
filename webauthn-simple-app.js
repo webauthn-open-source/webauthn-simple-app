@@ -54,7 +54,35 @@
          * @return {String} The human-readable message, probably multiple lines.
          */
         toHumanString() {
-            return JSON.stringify(this.toObject(), undefined, 4);
+            var constructMe = Object.getPrototypeOf(this).constructor;
+            var retObj = constructMe.from(this);
+            retObj.decodeBinaryProperties();
+            retObj = retObj.toObject();
+            var ret = `[${constructMe.name}] ` + stringifyObj(retObj, 0);
+            return ret;
+        }
+
+        /**
+         * Converts the provided `obj` to this class and then returns a human
+         * readable form of the object as interpreted by that class.
+         * @param  {Object} obj Any object
+         * @return {String}     A human-readable string as interpreteed by this class.
+         */
+        static toHumanString(obj) {
+            var retObj = this.from(obj);
+            retObj.decodeBinaryProperties();
+            retObj = retObj.toObject();
+            var ret = `[${this.name}] ` + stringifyObj(retObj, 0);
+            return ret;
+        }
+
+        /**
+         * Converts the `Msg` to a human-readable string (via {@link toHumanString}) and then replaces whitespace (" " and "\n") with
+         * HTML compatible interpetations of whitespace ("&nbsp;" and "<br>").
+         * @return {String} The HTML compatible representation of this Msg that should be easy for people to read
+         */
+        toHumanHtml() {
+            return this.toHumanString().replace(/ /g, "&nbsp;").replace(/\n/g, "<br>");
         }
 
         /**
@@ -69,14 +97,14 @@
          * Any fields that are known to be encoded as `base64url` are decoded to an `ArrayBuffer`
          */
         decodeBinaryProperties() {
-            throw new Error("not implemented");
+            // throw new Error("not implemented");
         }
 
         /**
          * Any fields that are known to be encoded as an `ArrayBuffer` are encoded as `base64url`
          */
         encodeBinaryProperties() {
-            throw new Error("not implemented");
+            // throw new Error("not implemented");
         }
 
         /**
@@ -101,7 +129,7 @@
             }
 
             if (typeof obj !== "object") {
-                throw new TypeError("could not coerce 'json' argument to an object");
+                throw new TypeError("could not coerce 'json' argument to an object: '" + json + "'");
             }
 
             var msg = new this.prototype.constructor();
@@ -160,28 +188,62 @@
         }
 
         decodeBinaryProperties() {
+            function decodeAb(obj, key) {
+                obj[key] = coerceToArrayBuffer(obj[key], key);
+            }
+
+            function decodeOptionalAb(obj, key) {
+                if (obj[key] !== undefined) decodeAb(obj, key);
+            }
+
+            function objToMap(o) {
+                var m = new Map();
+                Object.keys(o).forEach((k) => {
+                    m.set(k, o[k]);
+                });
+                return m;
+            }
+
             if (typeof this.debugInfo === "object") {
+                decodeAb(this.debugInfo.clientData, "rawId");
+                decodeAb(this.debugInfo.authnrData, "rawAuthnrData");
+                decodeAb(this.debugInfo.authnrData, "rpIdHash");
+                decodeOptionalAb(this.debugInfo.authnrData, "aaguid");
+                decodeOptionalAb(this.debugInfo.authnrData, "credId");
+                decodeOptionalAb(this.debugInfo.authnrData, "credentialPublicKeyCose");
+                decodeOptionalAb(this.debugInfo.authnrData, "sig");
+                decodeOptionalAb(this.debugInfo.authnrData, "attCert");
+
                 this.debugInfo.clientData.rawClientDataJson = str2ab(this.debugInfo.clientData.rawClientDataJson);
-                this.debugInfo.clientData.rawId = coerceToArrayBuffer(this.debugInfo.clientData.rawId);
-                this.debugInfo.authnrData.rawAuthnrData = coerceToArrayBuffer(this.debugInfo.authnrData.rawAuthnrData);
-                this.debugInfo.authnrData.rpIdHash = coerceToArrayBuffer(this.debugInfo.authnrData.rpIdHash);
-                if (this.debugInfo.authnrData.aaguid !== undefined) this.debugInfo.authnrData.aaguid = coerceToArrayBuffer(this.debugInfo.authnrData.aaguid);
-                if (this.debugInfo.authnrData.credId !== undefined) this.debugInfo.authnrData.credId = coerceToArrayBuffer(this.debugInfo.authnrData.credId);
-                if (this.debugInfo.authnrData.credentialPublicKeyCose !== undefined) this.debugInfo.authnrData.credentialPublicKeyCose = coerceToArrayBuffer(this.debugInfo.authnrData.credentialPublicKeyCose);
                 this.debugInfo.authnrData.flags = new Set([...this.debugInfo.authnrData.flags]);
+                this.debugInfo.audit.warning = objToMap(this.debugInfo.audit.warning);
+                this.debugInfo.audit.info = objToMap(this.debugInfo.audit.info);
             }
         }
 
         encodeBinaryProperties() {
+            function encodeAb(obj, key) {
+                obj[key] = coerceToBase64Url(obj[key], key);
+            }
+
+            function encodeOptionalAb(obj, key) {
+                if (obj[key] !== undefined) encodeAb(obj, key);
+            }
+
             if (typeof this.debugInfo === "object") {
+                encodeAb(this.debugInfo.clientData, "rawId");
+                encodeAb(this.debugInfo.authnrData, "rawAuthnrData");
+                encodeAb(this.debugInfo.authnrData, "rpIdHash");
+                encodeOptionalAb(this.debugInfo.authnrData, "aaguid");
+                encodeOptionalAb(this.debugInfo.authnrData, "credId");
+                encodeOptionalAb(this.debugInfo.authnrData, "credentialPublicKeyCose");
+                encodeOptionalAb(this.debugInfo.authnrData, "sig");
+                encodeOptionalAb(this.debugInfo.authnrData, "attCert");
+
                 this.debugInfo.clientData.rawClientDataJson = ab2str(this.debugInfo.clientData.rawClientDataJson, "clientData.rawClientDataJson");
-                this.debugInfo.clientData.rawId = coerceToBase64Url(this.debugInfo.clientData.rawId, "clientData.rawId");
-                this.debugInfo.authnrData.rawAuthnrData = coerceToBase64Url(this.debugInfo.authnrData.rawAuthnrData, "authnrData.rawAuthnrData");
-                this.debugInfo.authnrData.rpIdHash = coerceToBase64Url(this.debugInfo.authnrData.rpIdHash, "authnrData.rpIdHash");
-                if (this.debugInfo.authnrData.aaguid !== undefined) this.debugInfo.authnrData.aaguid = coerceToBase64Url(this.debugInfo.authnrData.aaguid, "authnrData.aaguid");
-                if (this.debugInfo.authnrData.credId !== undefined) this.debugInfo.authnrData.credId = coerceToBase64Url(this.debugInfo.authnrData.credId, "authnrData.credId");
-                if (this.debugInfo.authnrData.credentialPublicKeyCose !== undefined) this.debugInfo.authnrData.credentialPublicKeyCose = coerceToBase64Url(this.debugInfo.authnrData.credentialPublicKeyCose, "authnrData.credentialPublicKeyCose");
                 this.debugInfo.authnrData.flags = [...this.debugInfo.authnrData.flags];
+                this.debugInfo.audit.warning = mapToObj(this.debugInfo.audit.warning);
+                this.debugInfo.audit.info = mapToObj(this.debugInfo.audit.info);
             }
         }
     }
@@ -311,6 +373,22 @@
             ];
         }
 
+        static from(obj) {
+            obj = super.from(obj);
+
+            // original response object is probably read-only
+            if (typeof obj.response === "object") {
+                var origResponse = obj.response;
+
+                obj.response = {
+                    clientDataJSON: origResponse.clientDataJSON,
+                    attestationObject: origResponse.attestationObject,
+                };
+            }
+
+            return obj;
+        }
+
         validate() {
             checkFormat(this, "rawId", "base64url");
             checkOptionalFormat(this, "id", "base64url");
@@ -334,6 +412,128 @@
         }
     }
 
+    function stringifyObj(obj, depth) {
+        var str = "";
+
+        // opening bracket
+        str += "{\n";
+        depth++;
+
+        // print all properties
+        for (let key of Object.keys(obj)) {
+            // add key
+            str += indent(depth) + key + ": ";
+            // add value
+            str += stringifyType(obj, key, depth) + ",\n";
+        }
+
+        // closing bracket
+        depth--;
+        str += indent(depth) + "}";
+
+        return str;
+    }
+
+    function stringifyArr(arr, depth) {
+        var str = "";
+
+        // opening brace
+        str += "[\n";
+        depth++;
+
+        // print all properties
+        for (let i = 0; i < arr.length; i++) {
+            // add value
+            str += indent(depth) + stringifyType(arr, i, depth) + ",\n";
+        }
+
+        // closing brace
+        depth--;
+        str += indent(depth) + "]";
+
+        return str;
+    }
+
+    function stringifyType(obj, key, depth) {
+        // handle native types
+        switch (typeof obj[key]) {
+            case "object": break;
+            case "undefined": return "undefined";
+            // case "string": return "\"" + obj[key].replace(/\n/g, "\\n\"\n" + indent(depth + 1) + "\"") + "\"";
+            case "string": return "\"" + obj[key].replace(/\n/g, "\n" + indent(depth + 1)) + "\"";
+            case "number": return obj[key].toString();
+            case "boolean": return obj[key].toString();
+            case "symbol": return obj[key].toString();
+            default:
+                throw new TypeError("unknown type in stringifyType: " + typeof obj[key]);
+        }
+
+        // handle objects
+        switch (true) {
+            case obj[key] instanceof ArrayBuffer:
+                return abToHumanStr(obj[key], (depth + 1));
+            case obj[key] instanceof Array:
+                return stringifyArr(obj[key], depth);
+            case obj[key] instanceof Set:
+                return stringifyArr([...obj[key]], depth);
+            case obj[key] instanceof Map:
+                return stringifyObj(mapToObj(obj[key]), depth);
+            default:
+                return stringifyObj(obj[key], depth);
+        }
+    }
+
+    function indent(depth) {
+        var ret = "";
+
+        for (let i = 0; i < depth * 4; i++) {
+            ret += " ";
+        }
+
+        return ret;
+    }
+
+    // printHex
+    function abToHumanStr(buf, depth) {
+        var ret = "";
+
+        // if the buffer was a TypedArray (e.g. Uint8Array), grab its buffer and use that
+        if (ArrayBuffer.isView(buf) && buf.buffer instanceof ArrayBuffer) {
+            buf = buf.buffer;
+        }
+
+        // check the arguments
+        if ((typeof depth != "number") ||
+        (typeof buf != "object")) {
+            throw new TypeError("Bad args to abToHumanStr");
+        }
+        if (!(buf instanceof ArrayBuffer)) {
+            throw new TypeError("Attempted abToHumanStr with non-ArrayBuffer:", buf);
+        }
+        // print the buffer as a 16 byte long hex string
+        var arr = new Uint8Array(buf);
+        var len = buf.byteLength;
+        var i, str = "";
+        ret += `[ArrayBuffer] (${buf.byteLength} bytes)\n`;
+        for (i = 0; i < len; i++) {
+            var hexch = arr[i].toString(16);
+            hexch = (hexch.length == 1) ? ("0" + hexch) : hexch;
+            str += hexch.toUpperCase() + " ";
+            if (i && !((i + 1) % 16)) {
+                ret += indent(depth) + str.replace(/.$/, "\n");
+                str = "";
+            }
+        }
+        // print the remaining bytes
+        if ((i) % 16) {
+            ret += indent(depth) + str.replace(/.$/, "\n");
+        }
+
+        // remove final newline
+        ret = ret.replace(/\n$/, "");
+
+        return ret;
+    }
     /**
      * A {@link Msg} object that the browser sends to the server to request
      * the options to be used for the WebAuthn `get()` call.
@@ -420,6 +620,24 @@
                 "id",
                 "response"
             ];
+        }
+
+        static from(obj) {
+            obj = super.from(obj);
+
+            // original response object is probably read-only
+            if (typeof obj.response === "object") {
+                var origResponse = obj.response;
+
+                obj.response = {
+                    clientDataJSON: origResponse.clientDataJSON,
+                    authenticatorData: origResponse.authenticatorData,
+                    signature: origResponse.signature,
+                    userHandle: origResponse.userHandle,
+                };
+            }
+
+            return obj;
         }
 
         validate() {
@@ -769,6 +987,14 @@
         );
     }
 
+    function mapToObj(mapObj) {
+        var m = {};
+        mapObj.forEach((v, k) => {
+            m[k] = v;
+        });
+        return m;
+    }
+
     function isBrowser() {
         try {
             if (!window) return false;
@@ -902,11 +1128,12 @@
             var args = {
                 publicKey: options.toObject()
             };
+            args.publicKey.attestation = args.publicKey.attestation || "direct";
             delete args.publicKey.status;
             delete args.publicKey.errorMsg;
 
-            fireUserPresence("start");
             fireDebug("create-options", args);
+            fireUserPresence("start");
 
             return navigator.credentials.create(args)
                 .then((res) => {
@@ -916,7 +1143,7 @@
                 })
                 .catch((err) => {
                     fireUserPresence("done");
-                    fireDebug("create-failed", err);
+                    fireDebug("create-error", err);
                     return Promise.reject(err);
                 });
         }
@@ -946,8 +1173,8 @@
             delete args.publicKey.status;
             delete args.publicKey.errorMsg;
 
-            fireUserPresence("start");
             fireDebug("get-options", args);
+            fireUserPresence("start");
 
             return navigator.credentials.get(args)
                 .then((res) => {
@@ -957,7 +1184,7 @@
                 })
                 .catch((err) => {
                     fireUserPresence("done");
-                    fireDebug("get-failed", err);
+                    fireDebug("get-error", err);
                     return Promise.reject(err);
                 });
         }
@@ -1137,10 +1364,6 @@
                         body: xhr.responseText
                     });
 
-                    if (xhr.status !== 200) {
-                        return rejectWithFailed("server returned status: " + xhr.status);
-                    }
-
                     if (xhr.readyState !== 4) {
                         return rejectWithFailed("server returned ready state: " + xhr.readyState);
                     }
@@ -1149,14 +1372,22 @@
                     try {
                         response = JSON.parse(xhr.responseText);
                     } catch (err) {
-                        return rejectWithFailed("error parsing JSON response: '" + xhr.responseText + "'");
+                        if (xhr.status === 200) {
+                            return rejectWithFailed("error parsing JSON response: '" + xhr.responseText + "'");
+                        }
+                        return rejectWithFailed("server returned status: " + xhr.status);
                     }
 
-                    var msg = responseConstructor.from(response[0]);
+                    if (Array.isArray(response)) {
+                        response = response[0];
+                    }
+
+                    var msg = responseConstructor.from(response);
 
                     if (msg.status === "failed") {
                         return rejectWithFailed(msg.errorMessage);
                     }
+
 
                     try {
                         msg.validate();
@@ -1171,7 +1402,7 @@
                     return resolve(msg);
                 };
                 xhr.onerror = function() {
-                    return rejectWithFailed("POST to URL failed:" + url);
+                    return rejectWithFailed("POST to URL failed: " + url);
                 };
                 fireDebug("send", data);
 
@@ -1183,6 +1414,7 @@
     }
 
     function fireEvent(type, data) {
+        // console.log("firing event", type);
         var e = new CustomEvent(type, { detail: data || null });
         document.dispatchEvent(e);
     }
@@ -1208,8 +1440,8 @@
      * @property {String} type "webauthn-debug"
      * @property {Object} detail The details of the event
      * @property {String} detail.subtype The sub-type of the "webauth-debug" event.
-     * Options include: "create-options", "create-result", "create-failed", "get-options",
-     * "get-result", "get-failed", "send-error", "send-raw", "send", "response-raw", "response"
+     * Options include: "create-options", "create-result", "create-error", "get-options",
+     * "get-result", "get-error", "send-error", "send-raw", "send", "response-raw", "response"
      * @property {Any} detail.data The data of the event. Varies based on the `subtype` of the event.
      */
     function fireDebug(subtype, data) {
@@ -1265,11 +1497,11 @@
             case "done":
                 return fireEvent("webauthn-register-done");
             case "error":
-                fireEvent("webauthn-register-done");
-                return fireEvent("webauthn-register-error", data);
+                fireEvent("webauthn-register-error", data);
+                return fireEvent("webauthn-register-done");
             case "success":
-                fireEvent("webauthn-register-done");
-                return fireEvent("webauthn-register-success", data);
+                fireEvent("webauthn-register-success", data);
+                return fireEvent("webauthn-register-done");
             default:
                 throw new Error("unknown 'state' in fireRegister");
         }
@@ -1294,11 +1526,11 @@
             case "done":
                 return fireEvent("webauthn-login-done");
             case "error":
-                fireEvent("webauthn-login-done");
-                return fireEvent("webauthn-login-error", data);
+                fireEvent("webauthn-login-error", data);
+                return fireEvent("webauthn-login-done");
             case "success":
-                fireEvent("webauthn-login-done");
-                return fireEvent("webauthn-login-success", data);
+                fireEvent("webauthn-login-success", data);
+                return fireEvent("webauthn-login-done");
             default:
                 throw new Error("unknown 'state' in fireLogin");
         }
