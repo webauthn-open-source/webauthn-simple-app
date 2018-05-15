@@ -1022,10 +1022,10 @@
             }
 
             // check for WebAuthn CR features
-            if (window.PublicKeyCredential !== undefined &&
-            typeof window.PublicKeyCredential !== "function" &&
-            typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
-                console.log("no PublicKeyCredential");
+            if (window.PublicKeyCredential === undefined ||
+            typeof window.PublicKeyCredential !== "function" ||
+            typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== "function") {
+                console.log("PublicKeyCredential not found");
                 fireNotSupported("WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>");
                 return null;
             }
