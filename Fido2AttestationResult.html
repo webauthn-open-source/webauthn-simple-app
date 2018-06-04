@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Home - Documentation</title>
+    <title>Fido2AttestationResult - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -27,40 +27,134 @@
 
 <div id="main">
     
+    <h1 class="page-title">Fido2AttestationResult</h1>
+    
 
     
 
 
 
+
+<section>
+
+<header>
+    
+        <h2>
+        Fido2AttestationResult
+        </h2>
+        
+            <div class="class-description"><p>A validated attesetation result</p></div>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+    
+    <h2>Constructor</h2>
+    
+
+    <h4 class="name" id="Fido2AttestationResult"><span class="type-signature"></span>new Fido2AttestationResult<span class="signature">()</span><span class="type-signature"></span></h4>
+
     
 
 
 
 
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="response.js.html">response.js</a>, <a href="response.js.html#line67">line 67</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 
     
+    </div>
 
+    
 
-    <section class="readme">
-        <article><p><a href="https://travis-ci.org/apowers313/fido2-lib"><img src="https://travis-ci.org/apowers313/fido2-lib.svg?branch=master" alt="Build Status"></a> <a href="https://coveralls.io/github/apowers313/fido2-lib?branch=master"><img src="https://coveralls.io/repos/github/apowers313/fido2-lib/badge.svg?branch=master" alt="Coverage Status"></a> <a href="https://snyk.io/test/github/apowers313/fido2-lib?targetFile=package.json"><img src="https://snyk.io/test/github/apowers313/fido2-lib/badge.svg?targetFile=package.json" alt="Known Vulnerabilities"></a></p>
-<h2>Install</h2><pre class="prettyprint source lang-bash"><code>npm install fido2-lib</code></pre><h2>Overview</h2><p>A library for performing FIDO 2.0 / WebAuthn server functionality</p>
-<p>This library contains all the functionality necessary for implementing a full FIDO2 / WebAuthn server. It intentionally does not implement any kind of networking protocol (e.g. - REST endpoints) so that it can remain independent of any messaging protocols.</p>
-<p>There are four primary functions:</p>
-<ol>
-<li>attestationOptions - creates the challenge that will be sent to the client (e.g. - browser) for the credential create call. Note that the library does not keep track of sessions or context, so the caller is expected to associate the resulting challenge with a session so that it can be appropriately matched with a response.</li>
-<li>attestationResult - parses and validates the response from the client</li>
-<li>assertionOptions - creates the challenge that will be sent to the client for credential assertion. Essentially the same as <code>createCredentialChallenge</code></li>
-<li>assertionResult - parses and validates the response from the client</li>
-</ol>
-<p>There is also an extension point for adding new attestation formats.</p>
-<p>Full documentation can be found <a href="https://apowers313.github.io/fido2-lib/">here</a>.</p></article>
-    </section>
+    
 
+    
 
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
 
 
 
