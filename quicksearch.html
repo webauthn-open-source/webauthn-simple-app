@@ -1,0 +1,31 @@
+<html>
+<head>
+</head>
+<body style="background: transparent;">
+    <script src="scripts/docstrap.lib.js"></script>
+    <script src="scripts/lunr.min.js"></script>
+    <script src="scripts/fulltext-search.js"></script>
+
+    <script type="text/x-docstrap-searchdb">
+    {"classes.list.html":{"id":"classes.list.html","title":"Classes","body":" WebAuthn Simple Application Classes Msg Classes Classes Msg × Search results Close "},"index.html":{"id":"index.html","title":"Index","body":" WebAuthn Simple Application Classes Msg Work in progress. Do not use. TODO: Create GH_TOKEN and add to Travis CI build Get SauceLabs token and set SAUCE_ACCESS_KEY and SAUCE_USERNAME in Travis CI × Search results Close "},"Msg.html":{"id":"Msg.html","title":"Class: Msg","body":" WebAuthn Simple Application Classes Msg Class: Msg Msg Virtual class for messages that serves as the base for all other messages. new Msg() × Search results Close "}}
+    </script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            Searcher.init();
+        });
+
+        $(window).on("message", function(msg) {
+            var msgData = msg.originalEvent.data;
+
+            if (msgData.msgid != "docstrap.quicksearch.start") {
+                return;
+            }
+
+            var results = Searcher.search(msgData.searchTerms);
+
+            window.parent.postMessage({"results": results, "msgid": "docstrap.quicksearch.done"}, "*");
+        });
+    </script>
+</body>
+</html>
