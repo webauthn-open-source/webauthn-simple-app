@@ -10,7 +10,7 @@
     ],
     "opts": {
         "systemName": "WebAuthn Simple Application",
-        "copyright": "Copyright 2017, Adam Powers",
+        "copyright": "Copyright 2018, Adam Powers",
         "template": "node_modules/docdash",
         "readme": "README.md",
         "encoding": "utf8",
