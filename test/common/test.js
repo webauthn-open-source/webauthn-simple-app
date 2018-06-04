@@ -148,7 +148,7 @@ describe("coerceToArrayBuffer", () => {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
         ]).buffer;
-        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+        assert.isTrue(fido2Helpers.functions.abEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
     it("coerce base64 to ArrayBuffer", () => {
@@ -159,7 +159,7 @@ describe("coerceToArrayBuffer", () => {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
         ]).buffer;
-        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+        assert.isTrue(fido2Helpers.functions.abEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
     it("coerce Array to ArrayBuffer", () => {
@@ -173,7 +173,7 @@ describe("coerceToArrayBuffer", () => {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
         ]).buffer;
-        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+        assert.isTrue(fido2Helpers.functions.abEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
     it("coerce Uint8Array to ArrayBuffer", () => {
@@ -187,7 +187,7 @@ describe("coerceToArrayBuffer", () => {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
         ]).buffer;
-        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+        assert.isTrue(fido2Helpers.functions.abEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
     it("coerce ArrayBuffer to ArrayBuffer", () => {
@@ -201,7 +201,7 @@ describe("coerceToArrayBuffer", () => {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x3F, 0xF8
         ]).buffer;
-        assert.isTrue(fido2Helpers.functions.bufEqual(res, expectedAb), "got expected ArrayBuffer value");
+        assert.isTrue(fido2Helpers.functions.abEqual(res, expectedAb), "got expected ArrayBuffer value");
     });
 
     it("throws on incompatible: number", () => {
@@ -2422,7 +2422,7 @@ describe("CredentialAssertion", () => {
             assert.isString(msg.response.clientDataJSON);
             assert.isString(msg.response.signature);
             assert.isString(msg.response.authenticatorData);
-            assert.isNull(msg.response.userHandle);
+            // assert.isNull(msg.response.userHandle);
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.rawId, ArrayBuffer);
             assert.instanceOf(msg.response.clientDataJSON, ArrayBuffer);
