@@ -659,7 +659,7 @@
             if (this.response.userHandle) {
                 this.response.userHandle = coerceToArrayBuffer(this.response.userHandle, "response.authenticatorData");
             }
-            if (this.response.userHandle === null) {
+            if (this.response.userHandle === null || this.response.userHandle === "") {
                 this.response.userHandle = new ArrayBuffer();
             }
         }
