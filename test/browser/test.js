@@ -18,9 +18,11 @@ function serverMock() {
         server = sinon.fakeServer.create();
         server.respondImmediately = true;
     });
+
     afterEach(() => {
         server.restore();
     });
+
     function serverFake(url, data) {
         server.respondWith("POST", url, [200, {
             "Content-Type": "application/json"
@@ -438,11 +440,11 @@ describe("WebAuthnApp", () => {
             sendSpy = sinon.spy(app, "send");
             // fake a PublicKeyCredential
             testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.makeCredentialAttestationU2fResponse);
-            Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             // ArrayBuffers don't get copied
             testCred.rawId = fido2Helpers.lib.makeCredentialAttestationU2fResponse.rawId;
             testCred.id = undefined;
             testCred.response = fido2Helpers.lib.makeCredentialAttestationU2fResponse.response;
+            Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
         });
         afterEach(() => {
             app.send.restore();
@@ -593,12 +595,13 @@ describe("WebAuthnApp", () => {
             sendSpy = sinon.spy(app, "send");
             // fake a PublicKeyCredential
             testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.assertionResponse);
-            Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             // ArrayBuffers don't get copied
             testCred.rawId = fido2Helpers.lib.assertionResponse.rawId;
             testCred.id = undefined;
             testCred.response = fido2Helpers.lib.assertionResponse.response;
+            Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
         });
+
         afterEach(() => {
             app.send.restore();
         });
@@ -670,11 +673,16 @@ describe("WebAuthnApp", () => {
     describe("create", () => {
         var opts = CreateOptions.from(fido2Helpers.functions.cloneObject(fido2Helpers.server.basicCreationOptions));
         var result = fido2Helpers.lib.makeCredentialAttestationU2fResponse;
+
         var createSpy;
         beforeEach(() => {
+            result.getClientExtensionResults = function getClientExtensionResults() { // eslint-disable-line func-names
+                return {};
+            };
             createSpy = sinon.stub(navigator.credentials, "create");
             createSpy.returns(Promise.resolve(result));
         });
+
         afterEach(() => {
             navigator.credentials.create.restore();
         });
@@ -909,11 +917,14 @@ describe("WebAuthnApp", () => {
         var createMock;
         beforeEach(() => {
             var testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.makeCredentialAttestationU2fResponse);
-            Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             // ArrayBuffers don't get copied
             testCred.rawId = fido2Helpers.lib.makeCredentialAttestationU2fResponse.rawId;
             testCred.id = undefined;
             testCred.response = fido2Helpers.lib.makeCredentialAttestationU2fResponse.response;
+            testCred.getClientExtensionResults = function getClientExtensionResults() { // eslint-disable-line func-names
+                return {};
+            };
+            Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             createMock = sinon.stub(navigator.credentials, "create");
             createMock.returns(Promise.resolve(testCred));
         });
@@ -1096,11 +1107,14 @@ describe("WebAuthnApp", () => {
         var getMock;
         beforeEach(() => {
             var testCred = fido2Helpers.functions.cloneObject(fido2Helpers.lib.assertionResponse);
-            Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             // ArrayBuffers don't get copied
             testCred.rawId = fido2Helpers.lib.assertionResponse.rawId;
             testCred.id = undefined;
             testCred.response = fido2Helpers.lib.assertionResponse.response;
+            testCred.getClientExtensionResults = function getClientExtensionResults() { // eslint-disable-line func-names
+                return {};
+            };
+            Object.setPrototypeOf(testCred, window.PublicKeyCredential.prototype);
             getMock = sinon.stub(navigator.credentials, "get");
             getMock.returns(Promise.resolve(testCred));
         });
