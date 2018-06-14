@@ -1,6 +1,6 @@
 {
   "name": "webauthn-simple-app",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "webauthn-simple-app",
   "main": "webauthn-simple-app.js",
   "directories": {
@@ -9,7 +9,7 @@
   "scripts": {
     "test": "mocha test/common/*.js test/node/*.js && grunt default",
     "docs": "jsdoc -c ./.jsdoc-conf.json",
-    "publish-docs": "gh-pages --silent --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
+    "publish-docs": "gh-pages --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
   },
   "keywords": [
     "webauthn",
