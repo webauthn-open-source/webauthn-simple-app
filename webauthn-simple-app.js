@@ -1141,7 +1141,12 @@
 
             return navigator.credentials.create(args)
                 .then((res) => {
-                    res.getClientExtensionResults = res.getClientExtensionResults();
+                    // save client extensions
+                    if (typeof res.getClientExtensionResults === "function") {
+                        let exts = res.getClientExtensionResults();
+                        if (typeof exts === "object") res.getClientExtensionResults = exts;
+                    }
+
                     fireUserPresence("done");
                     fireDebug("create-result", res);
                     return res;
@@ -1183,7 +1188,12 @@
 
             return navigator.credentials.get(args)
                 .then((res) => {
-                    res.getClientExtensionResults = res.getClientExtensionResults();
+                    // save client extensions
+                    if (typeof res.getClientExtensionResults === "function") {
+                        let exts = res.getClientExtensionResults();
+                        if (typeof exts === "object") res.getClientExtensionResults = exts;
+                    }
+
                     fireUserPresence("done");
                     fireDebug("get-result", res);
                     return res;
