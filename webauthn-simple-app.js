@@ -369,7 +369,8 @@
             this.propList = [
                 "rawId",
                 "id",
-                "response"
+                "response",
+                "getClientExtensionResults"
             ];
         }
 
@@ -395,6 +396,7 @@
             checkType(this, "response", Object);
             checkFormat(this.response, "attestationObject", "base64url");
             checkFormat(this.response, "clientDataJSON", "base64url");
+            checkOptionalType(this, "getClientExtensionResults", Object);
         }
 
         decodeBinaryProperties() {
@@ -618,7 +620,8 @@
             this.propList = [
                 "rawId",
                 "id",
-                "response"
+                "response",
+                "getClientExtensionResults"
             ];
         }
 
@@ -648,6 +651,7 @@
             checkFormat(this.response, "clientDataJSON", "base64url");
             checkFormat(this.response, "signature", "base64url");
             checkOptionalFormat(this.response, "userHandle", "nullable-base64");
+            checkOptionalType(this, "getClientExtensionResults", Object);
         }
 
         decodeBinaryProperties() {
@@ -1137,6 +1141,7 @@
 
             return navigator.credentials.create(args)
                 .then((res) => {
+                    res.getClientExtensionResults = res.getClientExtensionResults();
                     fireUserPresence("done");
                     fireDebug("create-result", res);
                     return res;
@@ -1178,6 +1183,7 @@
 
             return navigator.credentials.get(args)
                 .then((res) => {
+                    res.getClientExtensionResults = res.getClientExtensionResults();
                     fireUserPresence("done");
                     fireDebug("get-result", res);
                     return res;
