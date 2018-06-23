@@ -21,7 +21,7 @@ npm install webauthn-simple-app
 
 **CDN**
 ``` html
-<!-- coming soon -->
+<script src="https://cdn.rawgit.com/apowers313/webauthn-simple-app/v1.2.0/webauthn-simple-app.js"></script>
 ```
 
 **GitHub**
