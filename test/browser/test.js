@@ -121,11 +121,11 @@ describe("WebAuthnApp", () => {
 
     var app;
     beforeEach(() => {
-        app = new window.WebAuthnApp();
+        app = new window.WebAuthnSimpleApp.WebAuthnApp();
     });
 
     it("exists", () => {
-        assert.isFunction(window.WebAuthnApp);
+        assert.isFunction(window.WebAuthnSimpleApp.WebAuthnApp);
     });
 
     it("is constructor", () => {
