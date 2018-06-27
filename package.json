@@ -10,7 +10,7 @@
   "scripts": {
     "build": "cross-env NODE_ENV=development rollup -c rollup.config.js",
     "build:prod": "cross-env NODE_ENV=production rollup -c rollup.config.js",
-    "test": "mocha test/common/*.js test/node/*.js && grunt default",
+    "test": "npm run build && mocha test/common/*.js test/node/*.js && grunt default",
     "docs": "jsdoc -c ./.jsdoc-conf.json",
     "publish-docs": "gh-pages --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
   },
