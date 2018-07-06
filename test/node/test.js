@@ -11,7 +11,7 @@ const {
     GetOptions,
     CredentialAssertion,
     WebAuthnOptions
-} = require("../../webauthn-simple-app");
+} = require("../../dist/webauthn-simple-app");
 
 describe("WebAuthnApp", function() {
     it("is running on node", function() {

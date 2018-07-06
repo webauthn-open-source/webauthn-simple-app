@@ -9,41 +9,33 @@
 
 "use strict";
 
+var waApp;
 if (typeof module === "object" && module.exports) {
     // node.js setup
     global.assert = require("chai").assert; // eslint-disable-line global-require
     global.fido2Helpers = require("fido2-helpers"); // eslint-disable-line global-require
-    const {
-        WebAuthnHelpers,
-        Msg,
-        ServerResponse,
-        CreateOptionsRequest,
-        CreateOptions,
-        CredentialAttestation,
-        GetOptionsRequest,
-        GetOptions,
-        CredentialAssertion,
-        WebAuthnOptions
-    } = require("../../webauthn-simple-app"); // eslint-disable-line global-require
-    global.WebAuthnHelpers = WebAuthnHelpers;
-    global.Msg = Msg;
-    global.ServerResponse = ServerResponse;
-    global.CreateOptionsRequest = CreateOptionsRequest;
-    global.CreateOptions = CreateOptions;
-    global.CredentialAttestation = CredentialAttestation;
-    global.GetOptionsRequest = GetOptionsRequest;
-    global.GetOptions = GetOptions;
-    global.CreateOptionsRequest = CreateOptionsRequest;
-    global.CredentialAssertion = CredentialAssertion;
-    global.WebAuthnOptions = WebAuthnOptions;
+    waApp = require("../../dist/webauthn-simple-app"); // eslint-disable-line global-require
 } else {
     // browser setup
     window.assert = chai.assert;
+    waApp = window.WebAuthnSimpleApp;
     mocha.setup("bdd");
 }
 
+var WebAuthnHelpers = waApp.WebAuthnHelpers;
+var Msg = waApp.Msg;
+var ServerResponse = waApp.ServerResponse;
+var CreateOptionsRequest = waApp.CreateOptionsRequest;
+var CreateOptions = waApp.CreateOptions;
+var CredentialAttestation = waApp.CredentialAttestation;
+var GetOptionsRequest = waApp.GetOptionsRequest;
+var GetOptions = waApp.GetOptions;
+var CreateOptionsRequest = waApp.CreateOptionsRequest;
+var CredentialAssertion = waApp.CredentialAssertion;
+var WebAuthnOptions = waApp.WebAuthnOptions;
+
 describe("defaultRoutes", function() {
-    var defaultRoutes = WebAuthnHelpers.defaultRoutes;
+    var defaultRoutes = waApp.WebAuthnHelpers.defaultRoutes;
     it("is object", function() {
         assert.isObject(defaultRoutes);
     });

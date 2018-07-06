@@ -20,7 +20,7 @@
 // 1b. client <<< GetOptions <<< server
 // 2a. client >>> CredentialAssertion >>> server
 // 2b. client <<< ServerResponse <<< server
-(function() {
+
     /**
      * Virtual class for messages that serves as the base
      * for all other messages.
@@ -1554,7 +1554,7 @@
 
     // exports, regardless of whether we're in browser or node.js
     // note that browser is using global namespace (i.e. - "window");
-    exp.WebAuthnHelpers = {
+    export let WebAuthnHelpers = {
         defaultRoutes: {
             attestationOptions: "/attestation/options",
             attestationResult: "/attestation/result",
@@ -1567,14 +1567,16 @@
             isBrowser
         }
     };
-    exp.Msg = Msg;
-    exp.ServerResponse = ServerResponse;
-    exp.CreateOptionsRequest = CreateOptionsRequest;
-    exp.CreateOptions = CreateOptions;
-    exp.CredentialAttestation = CredentialAttestation;
-    exp.GetOptionsRequest = GetOptionsRequest;
-    exp.GetOptions = GetOptions;
-    exp.CredentialAssertion = CredentialAssertion;
-    exp.WebAuthnOptions = WebAuthnOptions;
-    exp.WebAuthnApp = WebAuthnApp;
-}());
+    export {
+        Msg,
+        ServerResponse,
+        CreateOptionsRequest,
+        CreateOptions,
+        CredentialAttestation,
+        GetOptionsRequest,
+        GetOptions,
+        CredentialAssertion,
+        WebAuthnOptions,
+        WebAuthnApp
+    };
+

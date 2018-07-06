@@ -2,12 +2,15 @@
   "name": "webauthn-simple-app",
   "version": "1.2.0",
   "description": "webauthn-simple-app",
-  "main": "webauthn-simple-app.js",
+  "main": "dist/webauthn-simple-app.js",
+  "module": "dist/webauthn-simple-app.esm.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "mocha test/common/*.js test/node/*.js && grunt default",
+    "build": "cross-env NODE_ENV=development rollup -c rollup.config.js",
+    "build:prod": "cross-env NODE_ENV=production rollup -c rollup.config.js",
+    "test": "npm run build && mocha test/common/*.js test/node/*.js && grunt default",
     "docs": "jsdoc -c ./.jsdoc-conf.json",
     "publish-docs": "gh-pages --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
   },
@@ -28,7 +31,10 @@
   },
   "homepage": "https://github.com/apowers313/webauthn-simple-app#readme",
   "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0",
     "chai": "^3.5.0",
+    "cross-env": "^5.2.0",
     "docdash": "^0.4.0",
     "fido2-helpers": "^1.4.0",
     "gh-pages": "^0.12.0",
@@ -36,6 +42,8 @@
     "grunt-contrib-connect": "^1.0.2",
     "grunt-saucelabs": "^9.0.0",
     "jsdoc": "^3.5.5",
-    "mocha": "^3.2.0"
+    "mocha": "^3.2.0",
+    "rollup": "^0.61.2",
+    "rollup-plugin-babel": "^3.0.5"
   }
 }
