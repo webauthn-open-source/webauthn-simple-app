@@ -1,0 +1,554 @@
+import * as defaultRoutes from "../lib/default-routes.js";
+import * as utils from "../lib/utils.js";
+import { CreateOptions } from "./CreateOptions.js";
+import { CreateOptionsRequest } from "./CreateOptionsRequest.js";
+import { CredentialAssertion } from "./CredentialAssertion.js";
+import { CredentialAttestation } from "./CredentialAttestation.js";
+import { GetOptions } from "./GetOptions.js";
+import { GetOptionsRequest } from "./GetOptionsRequest.js";
+import { Msg } from "./Msg.js";
+import { ServerResponse } from "./ServerResponse.js";
+
+/**
+ * The main class for registering and logging in via WebAuthn. This class wraps all server communication,
+ * as well as calls to `credentials.navigator.create()` (registration) and `credentials.navigator.get()` (login)
+ *
+ * @param {Object} config The configuration object for WebAuthnApp
+ */
+export class WebAuthnApp {
+    constructor(config) {
+        // check for browser; throw error and fail if not browser
+        if (!utils.isBrowser()) throw new Error("WebAuthnApp must be run from a browser");
+
+        // check for secure context
+        if (!window.isSecureContext) {
+            fireNotSupported("This web page was not loaded in a secure context (https). Please try loading the page again using https or make sure you are using a browser with secure context support.");
+            return null;
+        }
+
+        // check for WebAuthn CR features
+        if (window.PublicKeyCredential === undefined ||
+            typeof window.PublicKeyCredential !== "function" ||
+            typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== "function") {
+            console.log("PublicKeyCredential not found");
+            fireNotSupported("WebAuthn is not currently supported by this browser. See this webpage for a list of supported browsers: <a href=https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API#Browser_compatibility>Web Authentication: Browser Compatibility</a>");
+            return null;
+        }
+
+        // Useful constants for working with COSE key objects
+        const coseAlgECDSAWithSHA256 = -7;
+
+        // configure or defaults
+        config = config || {};
+        this.registerChallengeEndpoint = config.registerChallengeEndpoint || defaultRoutes.attestationOptions;
+        this.registerResponseEndpoint = config.registerResponseEndpoint || defaultRoutes.attestationResult;
+        this.loginChallengeEndpoint = config.loginChallengeEndpoint || defaultRoutes.assertionOptions;
+        this.loginResponseEndpoint = config.loginResponseEndpoint || defaultRoutes.assertionResult;
+        this.registerChallengeMethod = config.registerChallengeMethod || "POST";
+        this.registerResponseMethod = config.registerResponseMethod || "POST";
+        this.loginChallengeMethod = config.loginChallengeMethod || "POST";
+        this.loginResponseMethod = config.loginResponseMethod || "POST";
+        this.timeout = config.timeout || 60000; // one minute
+        this.alg = config.alg || coseAlgECDSAWithSHA256;
+        this.binaryEncoding = config.binaryEncoding;
+        // TODO: relying party name
+        this.appName = config.appName || window.location.hostname;
+        this.username = config.username;
+    }
+
+    /**
+     * Perform WebAuthn registration, including getting options from the server
+     * calling `navigator.credentials.create()`, sending the result to the server,
+     * and validating the end result. Note that this is a convenience wrapper around
+     * {@link requestRegisterOptions}, {@link create}, and {@link sendRegisterResult}.
+     * Each of those classes fires events for various state changes or errors that
+     * can be captured for more advanced applications.
+     *
+     * @return {Promise.<ServerResponse|Error>} Returns a promise that resolves to
+     * a {@link ServerResponse} on success, or rejects with an `Error` on failure.
+     */
+    register() {
+        fireRegister("start");
+        // get challenge
+        return this.requestRegisterOptions()
+            .then((serverMsg) => this.create(serverMsg))
+            .then((newCred) => this.sendRegisterResult(newCred))
+            .then((msg) => {
+                fireRegister("success");
+                return msg;
+            })
+            .catch((err) => {
+                fireRegister("error", err);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * Perform WebAuthn authentication, including getting options from the server
+     * calling `navigator.credentials.get()`, sending the result to the server,
+     * and validating the end result. Note that this is a convenience wrapper around
+     * {@link requestLoginOptions}, {@link get}, and {@link sendLoginResult}.
+     * Each of those classes fires events for various state changes or errors that
+     * can be captured for more advanced applications.
+     *
+     * @return {Promise.<ServerResponse|Error>} Returns a promise that resolves to
+     * a {@link ServerResponse} on success, or rejects with an `Error` on failure.
+     */
+    login() {
+        fireLogin("start");
+        var self = this;
+        // get challenge
+        return this.requestLoginOptions()
+            .then((serverMsg) => self.get(serverMsg))
+            .then((assn) => self.sendLoginResult(assn))
+            .then((msg) => {
+                fireLogin("success");
+                return msg;
+            })
+            .catch((err) => {
+                fireLogin("error", err);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * A wrapper around a call to `navigator.credentials.create()`,
+     * which is WebAuthn's way of registering a new device with a service.
+     *
+     * @param  {CreateOptions} options The desired options for the `navigator.credentials.create()`
+     * call. May be the return value from {@link requestRegisterOptions} or a modified version thereof.
+     * Note that this object contains a `challenge` property which MUST come from the server and that
+     * the server will use to make sure that the credential isn't part of a replay attack.
+     * @return {Promise.<PublicKeyCredentialAttestation|Error>}         Returns a Promise that resolves to a
+     * {@link PublicKeyCredentialAttestation} on success (i.e. - the actual return value from `navigator.credentials.create()`),
+     * or rejects with an Error on failure.
+     * @fires WebAuthnApp#userPresenceEvent
+     */
+    create(options) {
+        if (!(options instanceof CreateOptions)) {
+            throw new Error("expected 'options' to be instance of CreateOptions");
+        }
+        options.decodeBinaryProperties();
+
+        var args = {
+            publicKey: options.toObject()
+        };
+        args.publicKey.attestation = args.publicKey.attestation || "direct";
+        delete args.publicKey.status;
+        delete args.publicKey.errorMessage;
+
+        fireDebug("create-options", args);
+        fireUserPresence("start");
+
+        return navigator.credentials.create(args)
+            .then((res) => {
+                // save client extensions
+                if (typeof res.getClientExtensionResults === "function") {
+                    let exts = res.getClientExtensionResults();
+                    if (typeof exts === "object") res.getClientExtensionResults = exts;
+                }
+
+                fireUserPresence("done");
+                fireDebug("create-result", res);
+                return res;
+            })
+            .catch((err) => {
+                fireUserPresence("done");
+                fireDebug("create-error", err);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * A wrapper around a call to `navigator.credentials.get()`,
+     * which is WebAuthn's way of authenticating a user to a service.
+     *
+     * @param  {GetOptions} options The desired options for the `navigator.credentials.get()`
+     * call. May be the return value from {@link requestLoginOptions} or a modified version thereof.
+     * Note that this object contains a `challenge` property which MUST come from the server and that
+     * the server will use to make sure that the credential isn't part of a replay attack.
+     * @return {Promise.<PublicKeyCredentialAssertion|Error>}         Returns a Promise that resolves to a
+     * {@link PublicKeyCredentialAssertion} on success (i.e. - the actual return value from `navigator.credentials.get()`),
+     * or rejects with an Error on failure.
+     * @fires WebAuthnApp#userPresenceEvent
+     */
+    get(options) {
+        if (!(options instanceof GetOptions)) {
+            throw new Error("expected 'options' to be instance of GetOptions");
+        }
+        options.decodeBinaryProperties();
+
+        var args = {
+            publicKey: options.toObject()
+        };
+        delete args.publicKey.status;
+        delete args.publicKey.errorMessage;
+
+        fireDebug("get-options", args);
+        fireUserPresence("start");
+
+        return navigator.credentials.get(args)
+            .then((res) => {
+                // save client extensions
+                if (typeof res.getClientExtensionResults === "function") {
+                    let exts = res.getClientExtensionResults();
+                    if (typeof exts === "object") res.getClientExtensionResults = exts;
+                }
+
+                fireUserPresence("done");
+                fireDebug("get-result", res);
+                return res;
+            })
+            .catch((err) => {
+                fireUserPresence("done");
+                fireDebug("get-error", err);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * Requests the registration options to be used from the server, including the random
+     * challenge to be used for this registration request.
+     *
+     * @return {CreateOptions} The options to be used for creating the new
+     * credential to be registered with the server. The options returned will
+     * have been validated.
+     */
+    requestRegisterOptions() {
+        var sendData = CreateOptionsRequest.from({
+            username: this.username,
+            displayName: this.displayName || this.username
+        });
+
+        return this.send(
+            this.registerChallengeMethod,
+            this.registerChallengeEndpoint,
+            sendData,
+            CreateOptions
+        );
+    }
+
+    /**
+     * Sends the {@link WebAuthn#AuthenticatorAttestationResponse}
+     * to the server.
+     *
+     * @param  {WebAuthn#AuthenticatorAttestationResponse} pkCred The public key credential (containing an attesation) returned from `navigator.credentials.get()`
+     * @return {Promise.<ServerResponse|Error>} Resolves to the {@link ServerResponse} from the server on success, or rejects with Error on failure
+     */
+    sendRegisterResult(pkCred) {
+        if (!(pkCred instanceof window.PublicKeyCredential)) {
+            throw new Error("expected 'pkCred' to be instance of PublicKeyCredential");
+        }
+
+        var sendData = CredentialAttestation.from({
+            username: this.username,
+            rawId: pkCred.rawId,
+            id: pkCred.rawId,
+            response: {
+                attestationObject: pkCred.response.attestationObject,
+                clientDataJSON: pkCred.response.clientDataJSON
+            }
+        });
+
+        return this.send(
+            this.registerResponseMethod,
+            this.registerResponseEndpoint,
+            sendData,
+            ServerResponse
+        );
+    }
+
+    /**
+     * Requests the login options to be used from the server, including the random
+     * challenge to be used for this registration request.
+     *
+     * @return {GetOptions} The options to be used for creating the new
+     * credential to be registered with the server. The options returned will
+     * have been validated.
+     */
+    requestLoginOptions() {
+        var sendData = GetOptionsRequest.from({
+            username: this.username,
+            displayName: this.displayname || this.username
+        });
+
+        return this.send(
+            this.loginChallengeMethod,
+            this.loginChallengeEndpoint,
+            sendData,
+            GetOptions
+        );
+    }
+
+    /**
+     * This class refers to the dictionaries and interfaces defined in the
+     * {@link https://www.w3.org/TR/webauthn/ WebAuthn specification} that are
+     * used by the {@link WebAuthnApp} class. They are included here for reference.
+     *
+     * @class WebAuthn
+     */
+
+    /**
+     * A {@link https://www.w3.org/TR/webauthn/#iface-pkcredential PublicKeyCredential}
+     * that has been created by an authenticator, where the `response` field contains a
+     * {@link https://www.w3.org/TR/webauthn/#authenticatorattestationresponse AuthenticatorAttesationResponse}.
+     *
+     * @typedef {Object} WebAuthn#AuthenticatorAttesationResponse
+     */
+
+    /**
+     * A {@link https://www.w3.org/TR/webauthn/#iface-pkcredential PublicKeyCredential}
+     * that has been created by an authenticator, where the `response` field contains a
+     * {@link https://www.w3.org/TR/webauthn/#authenticatorassertionresponse AuthenticatorAssertionResponse}.
+     *
+     * @typedef {Object} WebAuthn#AuthenticatorAssertionResponse
+     */
+
+    /**
+     * Sends the {@link WebAuthn#AuthenticatorAssertionResponse}
+     * to the server.
+     *
+     * @param  {WebAuthn#AuthenticatorAssertionResponse} assn The assertion returned from `navigator.credentials.get()`
+     * @return {Promise.<ServerResponse|Error>} Resolves to the {@link ServerResponse} from the server on success, or rejects with Error on failure
+     */
+    sendLoginResult(assn) {
+        if (!(assn instanceof window.PublicKeyCredential)) {
+            throw new Error("expected 'assn' to be instance of PublicKeyCredential");
+        }
+
+        var msg = CredentialAssertion.from(assn);
+
+        return this.send(
+            this.loginResponseMethod,
+            this.loginResponseEndpoint,
+            msg,
+            ServerResponse
+        );
+    }
+
+    /**
+     * The lowest-level message sending. Transmits a response over the wire.
+     *
+     * @param  {String} method              "POST", currently throws if non-POST, but this may be changed in the future.
+     * @param  {String} url                 The REST path to send the data to
+     * @param  {Msg} data                The data to be sent, in the form of a {@link Msg} object. This method will convert binary fields to their transmittable form and will validate the data being sent.
+     * @param  {Function} responseConstructor The constructor of the data to be received, which must inherit from {@link ServerResponse}. The data returned from this function will be of this type, as created by {@link Msg.from} and will be validated by {@link Msg.validate}.
+     * @return {Promise.<Msg|Error>}                     Returns a Promise that resolves to a {@link Msg} of the type specified by the `responseConstructor` parameter, or rejects with an Error on failure.
+     * @fires WebAuthnApp#debugEvent
+     */
+    send(method, url, data, responseConstructor) {
+        // check args
+        if (method !== "POST") {
+            return Promise.reject(new Error("why not POST your data?"));
+        }
+
+        if (typeof url !== "string") {
+            return Promise.reject(new Error("expected 'url' to be 'string', got: " + typeof url));
+        }
+
+        if (!(data instanceof Msg)) {
+            return Promise.reject(new Error("expected 'data' to be instance of 'Msg'"));
+        }
+
+        if (typeof responseConstructor !== "function") {
+            return Promise.reject(new Error("expected 'responseConstructor' to be 'function', got: " + typeof responseConstructor));
+        }
+
+        // convert binary properties (if any) to strings
+        data.encodeBinaryProperties();
+
+        // validate the data we're sending
+        try {
+            data.validate();
+        } catch (err) {
+            // console.log("validation error", err);
+            return Promise.reject(err);
+        }
+
+        // TODO: maybe some day upgrade to fetch(); have to change the mock in the tests too
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            function rejectWithFailed(errorMessage) {
+                fireDebug("send-error", new Error(errorMessage));
+                return reject(new Error(errorMessage));
+            }
+
+            xhr.open(method, url, true);
+            xhr.setRequestHeader("Content-type", "application/json; charset=utf-8");
+            xhr.onload = function() {
+                fireDebug("response-raw", {
+                    status: xhr.status,
+                    body: xhr.responseText
+                });
+
+                if (xhr.readyState !== 4) {
+                    return rejectWithFailed("server returned ready state: " + xhr.readyState);
+                }
+
+                var response;
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch (err) {
+                    if (xhr.status === 200) {
+                        return rejectWithFailed("error parsing JSON response: '" + xhr.responseText + "'");
+                    }
+                    return rejectWithFailed("server returned status: " + xhr.status);
+                }
+
+                if (Array.isArray(response)) {
+                    response = response[0];
+                }
+
+                var msg = responseConstructor.from(response);
+
+                if (msg.status === "failed") {
+                    return rejectWithFailed(msg.errorMessage);
+                }
+
+
+                try {
+                    msg.validate();
+                } catch (err) {
+                    return rejectWithFailed(err.message);
+                }
+
+                fireDebug("response", {
+                    status: xhr.status,
+                    body: msg
+                });
+                return resolve(msg);
+            };
+            xhr.onerror = function() {
+                return rejectWithFailed("POST to URL failed: " + url);
+            };
+            fireDebug("send", data);
+
+            data = data.toString();
+            fireDebug("send-raw", data);
+            xhr.send(data);
+        });
+    }
+}
+
+function fireEvent(type, data) {
+    // console.log("firing event", type);
+    var e = new CustomEvent(type, { detail: data || null });
+    document.dispatchEvent(e);
+}
+
+/**
+ * Event fired to signal that WebAuthn is not supported in the current context.
+ *
+ * @event WebAuthnApp#notSupportedEvent
+ *
+ * @property {String} type "webauthn-not-supported"
+ * @property {String} detail A human-readable reason for why WebAuthn is currently not supported.
+ */
+function fireNotSupported(reason) {
+    fireEvent("webauthn-not-supported", reason);
+    // fireDebug("not-supported", reason);
+}
+
+/**
+ * Debug event, for tracking the internal status of login() and register()
+ *
+ * @event WebAuthnApp#debugEvent
+ * @type {CustomEvent}
+ * @property {String} type "webauthn-debug"
+ * @property {Object} detail The details of the event
+ * @property {String} detail.subtype The sub-type of the "webauth-debug" event.
+ * Options include: "create-options", "create-result", "create-error", "get-options",
+ * "get-result", "get-error", "send-error", "send-raw", "send", "response-raw", "response"
+ * @property {Any} detail.data The data of the event. Varies based on the `subtype` of the event.
+ */
+function fireDebug(subtype, data) {
+    fireEvent("webauthn-debug", {
+        subtype: subtype,
+        data: data
+    });
+}
+
+/**
+ * Event that signals state changes for "User Presence" or "User Verification" testing.
+ * User Presence involves a user simply touching a device (or perhaps a button) to signal
+ * that the user is present and approves of a registration or log in action. On traditional
+ * Security Key devices, such as USB Security Keys, this may be signaled to the user by a
+ * flashing LED light on the device. User Verification is similar to User Presence, but
+ * involves a user performing biometric authentication (fingerprint, face, etc.) or entering
+ * a PIN. This event can be caught and a message can be displayed to the user reminding them
+ * to perform the approperiate action to continue the registration or log in process.
+ *
+ * @event WebAuthnApp#userPresenceEvent
+ * @type {CustomEvent}
+ * @property {String} type "webauthn-user-presence-start" when the User Presence or User Verification is beginning and waiting for the user.
+ * @property {String} type "webauthn-user-presence-done" when the User Presence or User Verification has completed (successfully or unsuccessfully)
+ * @property {null} detail (there are no details for this event)
+ */
+function fireUserPresence(state) {
+    switch (state) {
+        case "start":
+            return fireEvent("webauthn-user-presence-start");
+        case "done":
+            return fireEvent("webauthn-user-presence-done");
+        default:
+            throw new Error("unknown 'state' in fireUserPresence");
+    }
+}
+
+/**
+ * Event that signals the state changes for registration.
+ *
+ * @event WebAuthnApp#registerEvent
+ * @type {CustomEvent}
+ * @property {String} type "webauthn-register-start"
+ * @property {String} type "webauthn-register-done"
+ * @property {String} type "webauthn-register-error"
+ * @property {String} type "webauthn-register-success"
+ * @property {null|Error} detail There are no details for these events, except "webauthn-register-error"
+ * which will have the Error in detail.
+ */
+function fireRegister(state, data) {
+    switch (state) {
+        case "start":
+            return fireEvent("webauthn-register-start");
+        case "done":
+            return fireEvent("webauthn-register-done");
+        case "error":
+            fireEvent("webauthn-register-error", data);
+            return fireEvent("webauthn-register-done");
+        case "success":
+            fireEvent("webauthn-register-success", data);
+            return fireEvent("webauthn-register-done");
+        default:
+            throw new Error("unknown 'state' in fireRegister");
+    }
+}
+
+/**
+ * Event that signals the state changes for log in.
+ *
+ * @event WebAuthnApp#loginEvent
+ * @type {CustomEvent}
+ * @property {String} type "webauthn-login-start"
+ * @property {String} type "webauthn-login-done"
+ * @property {String} type "webauthn-login-error"
+ * @property {String} type "webauthn-login-success"
+ * @property {null|Error} detail There are no details for these events, except "webauthn-login-error"
+ * which will have the Error in detail.
+ */
+function fireLogin(state, data) {
+    switch (state) {
+        case "start":
+            return fireEvent("webauthn-login-start");
+        case "done":
+            return fireEvent("webauthn-login-done");
+        case "error":
+            fireEvent("webauthn-login-error", data);
+            return fireEvent("webauthn-login-done");
+        case "success":
+            fireEvent("webauthn-login-success", data);
+            return fireEvent("webauthn-login-done");
+        default:
+            throw new Error("unknown 'state' in fireLogin");
+    }
+}

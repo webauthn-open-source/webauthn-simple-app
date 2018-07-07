@@ -1,4 +1,7 @@
-"use strict";
+/* globals chai, mocha */
+
+window.assert = chai.assert;
+mocha.setup("bdd");
 
 onload = function() {
     //mocha.checkLeaks();
@@ -33,3 +36,4 @@ onload = function() {
         });
     }
 };
+

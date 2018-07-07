@@ -7,8 +7,6 @@
    WebAuthnOptions
  */
 
-"use strict";
-
 var assert = chai.assert;
 mocha.setup("bdd");
 
