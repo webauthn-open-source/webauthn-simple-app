@@ -3,7 +3,9 @@
         "allowUnknownTags": false
     },
     "source": {
-        "include": "webauthn-simple-app.js"
+        "include": [ "classes", "lib" ],
+        "includePattern": "\\.js$",
+        "exclude": [ "node_modules", "test", "dist", "rollup.config.js", "GruntFile.js" ]
     },
     "plugins": [
         "plugins/markdown"
