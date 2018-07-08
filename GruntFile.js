@@ -1,4 +1,4 @@
-"use strict";
+
 
 module.exports = function(grunt) {
     var browsers = [{
@@ -30,11 +30,11 @@ module.exports = function(grunt) {
     //     browserName: "internet explorer",
     //     platform: "Windows 10"
     // }, {
-        browserName: "chrome",
-        platform: "Linux"
-    }, {
-        browserName: "firefox",
-        platform: "Linux"
+    //     browserName: "chrome",
+    //     platform: "Linux"
+    // }, {
+    //     browserName: "firefox",
+    //     platform: "Linux"
     // }, {
     //     browserName: 'opera',
     //     platform: 'Windows 7'
