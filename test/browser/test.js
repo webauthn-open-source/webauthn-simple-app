@@ -1,14 +1,4 @@
-/* globals chai, sinon, fido2Helpers
-   WebAuthnHelpers, Msg, ServerResponse,
-   CreateOptionsRequest, CreateOptions,
-   CredentialAttestation,
-   GetOptionsRequest, GetOptions,
-   CredentialAssertion,
-   WebAuthnOptions
- */
-
-var assert = chai.assert;
-mocha.setup("bdd");
+/* globals chai, assert, sinon, fido2Helpers, GlobalWebAuthnClasses */
 
 function serverMock() {
     var server;
@@ -112,18 +102,50 @@ describe.skip("debug", () => {
     });
 });
 
+describe("utils", function() {
+    const {
+        isBrowser,
+        isNode
+    } = GlobalWebAuthnClasses.WebAuthnHelpers.utils;
+
+    describe("isNode", function() {
+        it("returns false", function() {
+            assert.isFalse(isNode());
+        });
+    });
+
+    describe("isBrowser", function() {
+        it("returns true", function() {
+            assert.isTrue(isBrowser());
+        });
+
+    });
+});
+
 describe("WebAuthnApp", () => {
+    const {
+        CreateOptions,
+        CreateOptionsRequest,
+        CredentialAssertion,
+        CredentialAttestation,
+        GetOptions,
+        GetOptionsRequest,
+        Msg,
+        ServerResponse,
+        WebAuthnApp
+    } = GlobalWebAuthnClasses;
+
     afterEach(() => {
         removeAllListeners();
     });
 
     var app;
     beforeEach(() => {
-        app = new window.WebAuthnSimpleApp.WebAuthnApp();
+        app = new WebAuthnApp();
     });
 
     it("exists", () => {
-        assert.isFunction(window.WebAuthnSimpleApp.WebAuthnApp);
+        assert.isFunction(WebAuthnApp);
     });
 
     it("is constructor", () => {

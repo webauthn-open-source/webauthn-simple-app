@@ -37,10 +37,6 @@ describe("index", function() {
         assert.isFunction(GlobalWebAuthnClasses.ServerResponse);
     });
 
-    it("has WebAuthnApp", function() {
-        assert.isFunction(GlobalWebAuthnClasses.WebAuthnApp);
-    });
-
     it("has WebAuthnHelpers", function() {
         assert.isObject(GlobalWebAuthnClasses.WebAuthnHelpers);
     });

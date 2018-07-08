@@ -552,3 +552,7 @@ function fireLogin(state, data) {
             throw new Error("unknown 'state' in fireLogin");
     }
 }
+
+if (!utils.isBrowser()) {
+    WebAuthnApp = undefined; // eslint-disable-line no-class-assign
+}
