@@ -11,9 +11,9 @@
     "build": "rollup -c rollup.config.js --environment NODE_ENV:development",
     "build:prod": "rollup -c rollup.config.js --environment NODE_ENV:production",
     "postinstall": "npm run build:prod",
-    "test:node": "mocha --require test/node/test-setup.js test/common/*.js test/node/*.js",
+    "test:node": "npm run build:prod && mocha --require test/node/test-setup.js test/common/*.js test/node/*.js",
     "test:browser": "grunt default",
-    "test": "npm run build:prod && npm run test:node && npm run test:browser",
+    "test": "npm run test:node && npm run test:browser",
     "prepublishOnly": "npm run test",
     "docs": "jsdoc -c ./.jsdoc-conf.json",
     "publish-docs": "gh-pages --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
