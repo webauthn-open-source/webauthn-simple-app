@@ -20,8 +20,15 @@ npm install webauthn-simple-app
 ```
 
 **CDN**
+
+**ES6 Module**
 ``` html
-<script src="https://cdn.rawgit.com/apowers313/webauthn-simple-app/v1.2.0/webauthn-simple-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webauthn-simple-app/dist/webauthn-simple-app.esm.js"></script>
+```
+
+**Universial Module (UMD)**
+``` html
+<script src="https://cdn.jsdelivr.net/npm/webauthn-simple-app/dist/webauthn-simple-app.umd.js"></script>
 ```
 
 **GitHub**
