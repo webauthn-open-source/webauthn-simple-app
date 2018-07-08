@@ -14,7 +14,8 @@
     "test:node": "npm run build:prod && mocha --require test/node/test-setup.js test/common/*.js test/node/*.js",
     "test:browser": "grunt default",
     "test": "npm run test:node && npm run test:browser",
-    "prepublishOnly": "npm run test",
+    "prepublishOnly": "npm run clean && npm run test",
+    "clean": "rm -rf dist docs",
     "docs": "jsdoc -c ./.jsdoc-conf.json",
     "publish-docs": "gh-pages --repo https://$GH_TOKEN@github.com/apowers313/webauthn-simple-app.git --dist docs"
   },
