@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>WebAuthn - Documentation</title>
+    <title>CreateOptionsRequest.js - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -27,290 +27,55 @@
 
 <div id="main">
     
-    <h1 class="page-title">WebAuthn</h1>
+    <h1 class="page-title">CreateOptionsRequest.js</h1>
     
 
     
 
 
 
-
-<section>
-
-<header>
-    
-        <h2>
-        WebAuthn
-        </h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-
-    
-
-    <h4 class="name" id="WebAuthn"><span class="type-signature"></span>new WebAuthn<span class="signature">()</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line283">line 283</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>This class refers to the dictionaries and interfaces defined in the
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/">www.w3.org/TR/webauthn/</a> WebAuthn specification</a> that are
-used by the <a href="WebAuthnApp.html">WebAuthnApp</a> class. They are included here for reference.</p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    </div>
-
-    
-
-    
-
-    
-
-     
-
-    
-
-    
-
-    
-
-    
-        <h3 class="subsection-title">Type Definitions</h3>
-
-        
-                
-<h4 class="name" id="AuthenticatorAssertionResponse">AuthenticatorAssertionResponse</h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line299">line 299</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
-that has been created by an authenticator, where the <code>response</code> field contains a
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorassertionresponse">www.w3.org/TR/webauthn/#authenticatorassertionresponse</a> AuthenticatorAssertionResponse</a>.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-            
-                
-<h4 class="name" id="AuthenticatorAttesationResponse">AuthenticatorAttesationResponse</h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line291">line 291</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
     
-
-    
-</dl>
-
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import {
+    checkAttestation,
+    checkAuthenticatorSelection,
+    checkFormat
+} from "../lib/input-validation.js";
 
+import { Msg } from "./Msg.js";
 
+/**
+ * A {@link Msg} object that the browser sends to the server to request
+ * the options to be used for the WebAuthn `create()` call.
+ * @extends {Msg}
+ */
+export class CreateOptionsRequest extends Msg {
+    constructor() {
+        super();
 
+        this.propList = [
+            "username",
+            "displayName",
+            "authenticatorSelection",
+            "attestation"
+        ];
+    }
 
-<div class="description">
-    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
-that has been created by an authenticator, where the <code>response</code> field contains a
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorattestationresponse">www.w3.org/TR/webauthn/#authenticatorattestationresponse</a> AuthenticatorAttesationResponse</a>.</p>
-</div>
+    validate() {
+        checkFormat(this, "username", "non-empty-string");
+        checkFormat(this, "displayName", "non-empty-string");
+        checkAuthenticatorSelection(this);
+        checkAttestation(this);
+    }
 
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-            
-    
-
-    
-</article>
+    decodeBinaryProperties() {}
 
-</section>
+    encodeBinaryProperties() {}
+}
+</code></pre>
+        </article>
+    </section>
 
 
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>WebAuthn - Documentation</title>
+    <title>ServerResponse.js - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -27,290 +27,139 @@
 
 <div id="main">
     
-    <h1 class="page-title">WebAuthn</h1>
-    
-
-    
-
-
-
-
-<section>
-
-<header>
-    
-        <h2>
-        WebAuthn
-        </h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-
-    
-
-    <h4 class="name" id="WebAuthn"><span class="type-signature"></span>new WebAuthn<span class="signature">()</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line283">line 283</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>This class refers to the dictionaries and interfaces defined in the
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/">www.w3.org/TR/webauthn/</a> WebAuthn specification</a> that are
-used by the <a href="WebAuthnApp.html">WebAuthnApp</a> class. They are included here for reference.</p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    </div>
-
-    
-
-    
-
-    
-
-     
-
-    
-
-    
-
-    
-
-    
-        <h3 class="subsection-title">Type Definitions</h3>
-
-        
-                
-<h4 class="name" id="AuthenticatorAssertionResponse">AuthenticatorAssertionResponse</h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line299">line 299</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
-that has been created by an authenticator, where the <code>response</code> field contains a
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorassertionresponse">www.w3.org/TR/webauthn/#authenticatorassertionresponse</a> AuthenticatorAssertionResponse</a>.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-            
-                
-<h4 class="name" id="AuthenticatorAttesationResponse">AuthenticatorAttesationResponse</h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line291">line 291</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
-that has been created by an authenticator, where the <code>response</code> field contains a
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorattestationresponse">www.w3.org/TR/webauthn/#authenticatorattestationresponse</a> AuthenticatorAttesationResponse</a>.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-            
-    
-
-    
-</article>
-
-</section>
+    <h1 class="page-title">ServerResponse.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import {
+    ab2str,
+    coerceToArrayBuffer,
+    coerceToBase64Url,
+    mapToObj,
+    str2ab
+} from "../lib/utils.js";
+
+import {
+    checkOptionalType,
+    checkTrue,
+    checkType
+} from "../lib/input-validation.js";
+
+import { Msg } from "./Msg.js";
+
+/**
+ * Generic {@link Msg} from server to indicate success or failure. Used by
+ * itself for simple responses, or extended for more complex responses.
+ * @extends {Msg}
+ */
+export class ServerResponse extends Msg {
+    constructor() {
+        super();
+
+        this.propList = [
+            "status",
+            "errorMessage",
+            "debugInfo"
+        ];
+    }
+
+    validate() {
+        switch (this.status) {
+            case "ok":
+                if (this.errorMessage === undefined) {
+                    this.errorMessage = "";
+                }
+
+                // if status is "ok", errorMessage must be ""
+                checkTrue(this.errorMessage === "", "errorMessage must be empty string when status is 'ok'");
+                checkOptionalType(this, "debugInfo", "object");
+                break;
+
+            case "failed":
+                // if status is "failed", errorMessage must be non-zero-length string
+                checkType(this, "errorMessage", "string");
+                checkTrue(
+                    this.errorMessage.length > 0,
+                    "errorMessage must be non-zero length when status is 'failed'"
+                );
+                checkOptionalType(this, "debugInfo", "object");
+                break;
+
+                // status is string, either "ok" or "failed"
+            default:
+                throw new Error("'expected 'status' to be 'string', got: " + this.status);
+        }
+    }
+
+    decodeBinaryProperties() {
+        function decodeAb(obj, key) {
+            obj[key] = coerceToArrayBuffer(obj[key], key);
+        }
+
+        function decodeOptionalAb(obj, key) {
+            if (obj[key] !== undefined) decodeAb(obj, key);
+        }
+
+        function objToMap(o) {
+            var m = new Map();
+            Object.keys(o).forEach((k) => {
+                m.set(k, o[k]);
+            });
+            return m;
+        }
+
+        if (typeof this.debugInfo === "object") {
+            decodeAb(this.debugInfo.clientData, "rawId");
+            decodeAb(this.debugInfo.authnrData, "rawAuthnrData");
+            decodeAb(this.debugInfo.authnrData, "rpIdHash");
+            decodeOptionalAb(this.debugInfo.authnrData, "aaguid");
+            decodeOptionalAb(this.debugInfo.authnrData, "credId");
+            decodeOptionalAb(this.debugInfo.authnrData, "credentialPublicKeyCose");
+            decodeOptionalAb(this.debugInfo.authnrData, "sig");
+            decodeOptionalAb(this.debugInfo.authnrData, "attCert");
+
+            this.debugInfo.clientData.rawClientDataJson = str2ab(this.debugInfo.clientData.rawClientDataJson);
+            this.debugInfo.authnrData.flags = new Set([...this.debugInfo.authnrData.flags]);
+            this.debugInfo.audit.warning = objToMap(this.debugInfo.audit.warning);
+            this.debugInfo.audit.info = objToMap(this.debugInfo.audit.info);
+        }
+    }
+
+    encodeBinaryProperties() {
+        function encodeAb(obj, key) {
+            obj[key] = coerceToBase64Url(obj[key], key);
+        }
+
+        function encodeOptionalAb(obj, key) {
+            if (obj[key] !== undefined) encodeAb(obj, key);
+        }
+
+        if (typeof this.debugInfo === "object") {
+            encodeAb(this.debugInfo.clientData, "rawId");
+            encodeAb(this.debugInfo.authnrData, "rawAuthnrData");
+            encodeAb(this.debugInfo.authnrData, "rpIdHash");
+            encodeOptionalAb(this.debugInfo.authnrData, "aaguid");
+            encodeOptionalAb(this.debugInfo.authnrData, "credId");
+            encodeOptionalAb(this.debugInfo.authnrData, "credentialPublicKeyCose");
+            encodeOptionalAb(this.debugInfo.authnrData, "sig");
+            encodeOptionalAb(this.debugInfo.authnrData, "attCert");
+
+            this.debugInfo.clientData.rawClientDataJson = ab2str(this.debugInfo.clientData.rawClientDataJson, "clientData.rawClientDataJson");
+            this.debugInfo.authnrData.flags = [...this.debugInfo.authnrData.flags];
+            this.debugInfo.audit.warning = mapToObj(this.debugInfo.audit.warning);
+            this.debugInfo.audit.info = mapToObj(this.debugInfo.audit.info);
+        }
+    }
+}
+</code></pre>
+        </article>
+    </section>
 
 
 

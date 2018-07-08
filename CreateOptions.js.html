@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>WebAuthn - Documentation</title>
+    <title>CreateOptions.js - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -27,290 +27,117 @@
 
 <div id="main">
     
-    <h1 class="page-title">WebAuthn</h1>
-    
-
-    
-
-
-
-
-<section>
-
-<header>
-    
-        <h2>
-        WebAuthn
-        </h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-
-    
-
-    <h4 class="name" id="WebAuthn"><span class="type-signature"></span>new WebAuthn<span class="signature">()</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line283">line 283</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>This class refers to the dictionaries and interfaces defined in the
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/">www.w3.org/TR/webauthn/</a> WebAuthn specification</a> that are
-used by the <a href="WebAuthnApp.html">WebAuthnApp</a> class. They are included here for reference.</p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    </div>
-
-    
-
-    
-
-    
-
-     
-
-    
-
-    
-
-    
-
-    
-        <h3 class="subsection-title">Type Definitions</h3>
-
-        
-                
-<h4 class="name" id="AuthenticatorAssertionResponse">AuthenticatorAssertionResponse</h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line299">line 299</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
-that has been created by an authenticator, where the <code>response</code> field contains a
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorassertionresponse">www.w3.org/TR/webauthn/#authenticatorassertionresponse</a> AuthenticatorAssertionResponse</a>.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-            
-                
-<h4 class="name" id="AuthenticatorAttesationResponse">AuthenticatorAttesationResponse</h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line291">line 291</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
-that has been created by an authenticator, where the <code>response</code> field contains a
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorattestationresponse">www.w3.org/TR/webauthn/#authenticatorattestationresponse</a> AuthenticatorAttesationResponse</a>.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-            
-    
-
-    
-</article>
-
-</section>
+    <h1 class="page-title">CreateOptions.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import {
+    checkAttestation,
+    checkAuthenticatorSelection,
+    checkCredentialDescriptorList,
+    checkFormat,
+    checkOptionalFormat,
+    checkOptionalType,
+    checkTrue,
+    checkType
+} from "../lib/input-validation.js";
+
+import {
+    coerceToArrayBuffer,
+    coerceToBase64Url
+} from "../lib/utils.js";
+
+import { ServerResponse } from "./ServerResponse.js";
+
+/**
+ * The options to be used for WebAuthn `create()`
+ * @extends {ServerResponse}
+ */
+export class CreateOptions extends ServerResponse {
+    constructor() {
+        super();
+
+        this.propList = this.propList.concat([
+            "rp",
+            "user",
+            "challenge",
+            "pubKeyCredParams",
+            "timeout",
+            "excludeCredentials",
+            "authenticatorSelection",
+            "attestation",
+            "extensions"
+        ]);
+    }
+
+    validate() {
+        super.validate();
+
+        // check types
+        checkType(this, "rp", Object);
+        checkFormat(this.rp, "name", "non-empty-string");
+        checkOptionalFormat(this.rp, "id", "non-empty-string");
+        checkOptionalFormat(this.rp, "icon", "non-empty-string");
+
+        checkType(this, "user", Object);
+        checkFormat(this.user, "name", "non-empty-string");
+        checkFormat(this.user, "id", "base64url");
+        checkFormat(this.user, "displayName", "non-empty-string");
+        checkOptionalFormat(this.user, "icon", "non-empty-string");
+
+        checkFormat(this, "challenge", "base64url");
+        checkType(this, "pubKeyCredParams", Array);
+        this.pubKeyCredParams.forEach((cred) => {
+            checkType(cred, "alg", "number");
+            checkTrue(cred.type === "public-key", "credential type must be 'public-key'");
+        });
+        checkOptionalFormat(this, "timeout", "positive-integer");
+        checkOptionalType(this, "excludeCredentials", Array);
+        if (this.excludeCredentials) checkCredentialDescriptorList(this.excludeCredentials);
+
+        checkAuthenticatorSelection(this);
+        checkAttestation(this);
+
+        checkOptionalType(this, "extensions", Object);
+    }
+
+    decodeBinaryProperties() {
+        if (this.user &amp;&amp; this.user.id) {
+            this.user.id = coerceToArrayBuffer(this.user.id, "user.id");
+        }
+
+        this.challenge = coerceToArrayBuffer(this.challenge, "challenge");
+
+        if (this.excludeCredentials) {
+            this.excludeCredentials.forEach((cred, idx) => {
+                cred.id = coerceToArrayBuffer(cred.id, "excludeCredentials[" + idx + "].id");
+            });
+        }
+    }
+
+    encodeBinaryProperties() {
+        if (this.user &amp;&amp; this.user.id) {
+            this.user.id = coerceToBase64Url(this.user.id, "user.id");
+        }
+
+        this.challenge = coerceToBase64Url(this.challenge, "challenge");
+
+        if (this.excludeCredentials) {
+            this.excludeCredentials.forEach((cred, idx) => {
+                cred.id = coerceToBase64Url(cred.id, "excludeCredentials[" + idx + "].id");
+            });
+        }
+    }
+}
+</code></pre>
+        </article>
+    </section>
 
 
 

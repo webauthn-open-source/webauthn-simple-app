@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>WebAuthn - Documentation</title>
+    <title>Msg.js - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -27,290 +27,145 @@
 
 <div id="main">
     
-    <h1 class="page-title">WebAuthn</h1>
-    
-
-    
-
-
-
-
-<section>
-
-<header>
-    
-        <h2>
-        WebAuthn
-        </h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-
-    
-
-    <h4 class="name" id="WebAuthn"><span class="type-signature"></span>new WebAuthn<span class="signature">()</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line283">line 283</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>This class refers to the dictionaries and interfaces defined in the
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/">www.w3.org/TR/webauthn/</a> WebAuthn specification</a> that are
-used by the <a href="WebAuthnApp.html">WebAuthnApp</a> class. They are included here for reference.</p>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    </div>
-
-    
-
-    
-
-    
-
-     
-
-    
-
-    
-
-    
-
-    
-        <h3 class="subsection-title">Type Definitions</h3>
-
-        
-                
-<h4 class="name" id="AuthenticatorAssertionResponse">AuthenticatorAssertionResponse</h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line299">line 299</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
-that has been created by an authenticator, where the <code>response</code> field contains a
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorassertionresponse">www.w3.org/TR/webauthn/#authenticatorassertionresponse</a> AuthenticatorAssertionResponse</a>.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-            
-                
-<h4 class="name" id="AuthenticatorAttesationResponse">AuthenticatorAttesationResponse</h4>
-
-
-
-
-
-<dl class="details">
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WebAuthnApp.js.html">WebAuthnApp.js</a>, <a href="WebAuthnApp.js.html#line291">line 291</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>A <a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#iface-pkcredential">www.w3.org/TR/webauthn/#iface-pkcredential</a> PublicKeyCredential</a>
-that has been created by an authenticator, where the <code>response</code> field contains a
-<a href="https://%3Ca">href="http://www.w3.org/TR/webauthn/#authenticatorattestationresponse">www.w3.org/TR/webauthn/#authenticatorattestationresponse</a> AuthenticatorAttesationResponse</a>.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-            
-    
-
-    
-</article>
-
-</section>
+    <h1 class="page-title">Msg.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import {
+    copyPropList,
+    stringifyObj,
+} from "../lib/utils.js";
+
+/**
+ * Virtual class for messages that serves as the base
+ * for all other messages.
+ */
+export class Msg {
+    constructor() {
+        /** @type {Array} The list of "official" properties that are managed for this object and sent over the wire. */
+        this.propList = [];
+    }
+
+    /**
+     * Converts the `Msg` to an `Object` containing all the properties in `propList` that have been defined on the `Msg`
+     * @return {Object} An `Object` that contains all the properties to be sent over the wire.
+     */
+    toObject() {
+        var obj = {};
+        copyPropList(this, obj, this.propList);
+        return obj;
+    }
+
+    /**
+     * Converts the `Msg` to a JSON string containing all the properties in `propList` that have been defined on the `Msg`
+     * @return {String} A JSON `String` that contains all the properties to be sent over the wire.
+     */
+    toString() {
+        return JSON.stringify(this.toObject());
+    }
+
+    /**
+     * Converts the `Msg` to a human-readable string. Useful for debugging messages as they are being sent / received.
+     * @return {String} The human-readable message, probably multiple lines.
+     */
+    toHumanString() {
+        var constructMe = Object.getPrototypeOf(this).constructor;
+        var retObj = constructMe.from(this);
+        retObj.decodeBinaryProperties();
+        retObj = retObj.toObject();
+        var ret = `[${constructMe.name}] ` + stringifyObj(retObj, 0);
+        return ret;
+    }
+
+    /**
+     * Converts the provided `obj` to this class and then returns a human
+     * readable form of the object as interpreted by that class.
+     * @param  {Object} obj Any object
+     * @return {String}     A human-readable string as interpreteed by this class.
+     */
+    static toHumanString(obj) {
+        var retObj = this.from(obj);
+        retObj.decodeBinaryProperties();
+        retObj = retObj.toObject();
+        var ret = `[${this.name}] ` + stringifyObj(retObj, 0);
+        return ret;
+    }
+
+    /**
+     * Converts the `Msg` to a human-readable string (via {@link toHumanString}) and then replaces whitespace (" " and "\n") with
+     * HTML compatible interpetations of whitespace ("&amp;nbsp;" and "&lt;br>").
+     * @return {String} The HTML compatible representation of this Msg that should be easy for people to read
+     */
+    toHumanHtml() {
+        return this.toHumanString().replace(/ /g, "&amp;nbsp;").replace(/\n/g, "&lt;br>");
+    }
+
+    /**
+     * Ensures that all the required properties in the object are defined, and all defined properties are of the correct format.
+     * @throws {Error} If any required field is undefined, or any defined field is of the wrong format.
+     */
+    validate() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * Any fields that are known to be encoded as `base64url` are decoded to an `ArrayBuffer`
+     */
+    decodeBinaryProperties() {
+        // throw new Error("not implemented");
+    }
+
+    /**
+     * Any fields that are known to be encoded as an `ArrayBuffer` are encoded as `base64url`
+     */
+    encodeBinaryProperties() {
+        // throw new Error("not implemented");
+    }
+
+    /**
+     * Creates a new `Msg` object from the specified parameter. Note that the resulting `Msg` is not validated
+     * and all fields are their original values (call {@link decodeBinaryProperties} to convert fields to ArrayBuffers)
+     * if needed.
+     * @param  {String|Object} json The JSON encoded string, or already parsed JSON message in an `Object`
+     * @return {Msg}      The newly created message from the Object.
+     */
+    static from(json) {
+        var obj;
+        if (typeof json === "string") {
+            try {
+                obj = JSON.parse(json);
+            } catch (err) {
+                throw new TypeError("error parsing JSON string");
+            }
+        }
+
+        if (typeof json === "object") {
+            obj = json;
+        }
+
+        if (typeof obj !== "object") {
+            throw new TypeError("could not coerce 'json' argument to an object: '" + json + "'");
+        }
+
+        var msg = new this.prototype.constructor();
+        copyPropList(obj, msg, msg.propList);
+
+        // if (obj.preferences) {
+        //     msg.preferences = WebAuthnOptions.from(obj.preferences);
+        // }
+
+        return msg;
+    }
+}
+</code></pre>
+        </article>
+    </section>
 
 
 
