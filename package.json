@@ -28,6 +28,11 @@
     "url": "git+https://github.com/apowers313/webauthn-simple-app.git"
   },
   "author": "Adam Powers",
+  "contributors": [
+    {
+      "name": "@madwizard-thomas"
+    }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/apowers313/webauthn-simple-app/issues",
