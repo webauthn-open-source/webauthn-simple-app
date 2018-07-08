@@ -1,7 +1,9 @@
 /* globals chai, mocha */
 
-window.assert = chai.assert;
-mocha.setup("bdd");
+import * as tmp from "../../index.js";
+window.GlobalWebAuthnClasses = tmp;
+window.assert = window.chai.assert;
+window.mocha.setup("bdd");
 
 onload = function() {
     //mocha.checkLeaks();

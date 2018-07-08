@@ -1,10 +1,11 @@
-/* globals chai, assert, fido2Helpers, Msg */
-import {
-    CreateOptions,
-    ServerResponse
-} from "../../index.js";
+/* globals chai, assert, fido2Helpers, GlobalWebAuthnClasses */
 
 describe("CreateOptions", function() {
+    const {
+        CreateOptions,
+        ServerResponse
+    } = GlobalWebAuthnClasses;
+
     it("is loaded", function() {
         assert.isFunction(CreateOptions);
     });

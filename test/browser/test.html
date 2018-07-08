@@ -12,26 +12,27 @@
     <!-- Configure Mocha Test Runner -->
     <div id="mocha"></div>
     <script src="js/mocha.js"></script>
-    <script src="js/chai.js" type="text/javascript"></script>
+    <script src="js/chai.js"></script>
     <script src="js/sinon-1.17.1.js"></script>
-    <!-- Insert test scripts here -->
-    <script src="/node_modules/fido2-helpers/fido2-helpers.js"></script>
-    <script src="/test/common/create-options-test.js" type="module"
-    ></script>
-    <script src="/test/common/create-options-request-test.js" type="module"></script>
-    <script src="/test/common/credential-assertion-test.js" type="module"></script>
-    <script src="/test/common/credential-attestation-test.js" type="module"></script>
-    <script src="/test/common/get-options-test.js" type="module"
-    ></script>
-    <script src="/test/common/get-options-request-test.js" type="module"></script>
-    <script src="/test/common/helpers-test.js" type="module"></script>
-    <script src="/test/common/index-test.js" type="module"></script>
-    <script src="/test/common/msg-test.js" type="module"></script>
-    <script src="/test/common/server-response-test.js" type="module"></script>
-    <script src="/test/common/webauthn-options-test.js" type="module"></script>
 
     <!-- Run Mocha -->
-    <script src="test-setup.js"></script>
+    <script src="test-setup.js" type="module"></script>
+
+    <!-- Test helpers -->
+    <script src="/node_modules/fido2-helpers/fido2-helpers.js"></script>
+
+    <!-- Insert test scripts here -->
+    <script type="module" src="/test/common/index-test.js"></script>
+    <script type="module" src="/test/common/helpers-test.js"></script>
+    <script type="module" src="/test/common/msg-test.js"></script>
+    <script type="module" src="/test/common/server-response-test.js"></script>
+    <script type="module" src="/test/common/create-options-test.js"></script>
+    <script type="module" src="/test/common/create-options-request-test.js"></script>
+    <script type="module" src="/test/common/credential-assertion-test.js"></script>
+    <script type="module" src="/test/common/credential-attestation-test.js"></script>
+    <script type="module" src="/test/common/get-options-test.js"></script>
+    <script type="module" src="/test/common/get-options-request-test.js"></script>
+    <script type="module" src="/test/common/webauthn-options-test.js"></script>
 </body>
 
 </html>

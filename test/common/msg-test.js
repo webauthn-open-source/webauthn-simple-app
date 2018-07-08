@@ -1,7 +1,8 @@
-/* globals chai, assert, fido2Helpers, Msg */
-import { Msg } from "../../index.js";
+/* globals chai, assert, fido2Helpers, GlobalWebAuthnClasses */
 
 describe("Msg", function() {
+    const { Msg } = GlobalWebAuthnClasses;
+
     class TestClass extends Msg {
         constructor() {
             super();

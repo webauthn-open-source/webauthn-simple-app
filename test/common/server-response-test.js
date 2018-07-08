@@ -1,10 +1,11 @@
-/* globals chai, assert, fido2Helpers, Msg */
-import {
-    Msg,
-    ServerResponse
-} from "../../index.js";
+/* globals chai, assert, fido2Helpers, GlobalWebAuthnClasses */
 
 describe("ServerResponse", function() {
+    const {
+        Msg,
+        ServerResponse
+    } = GlobalWebAuthnClasses;
+
     it("is loaded", function() {
         assert.isFunction(ServerResponse);
     });

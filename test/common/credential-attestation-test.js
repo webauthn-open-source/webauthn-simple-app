@@ -1,10 +1,11 @@
-/* globals chai, assert, fido2Helpers, Msg */
-import {
-    CredentialAttestation,
-    Msg
-} from "../../index.js";
+/* globals chai, assert, fido2Helpers, GlobalWebAuthnClasses */
 
 describe("CredentialAttestation", function() {
+    const {
+        CredentialAttestation,
+        Msg
+    } = GlobalWebAuthnClasses;
+
     it("is loaded", function() {
         assert.isFunction(CredentialAttestation);
     });

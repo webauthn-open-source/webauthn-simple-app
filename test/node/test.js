@@ -1,5 +1,3 @@
-"use strict";
-
 const assert = require("chai").assert;
 const {
     Msg,
@@ -11,7 +9,7 @@ const {
     GetOptions,
     CredentialAssertion,
     WebAuthnOptions
-} = require("../../dist/webauthn-simple-app");
+} = require("../../dist/webauthn-simple-app.cjs");
 
 describe("WebAuthnApp", function() {
     it("is running on node", function() {

@@ -1,11 +1,15 @@
-/* globals chai, assert, fido2Helpers, Msg */
-import { WebAuthnHelpers } from "../../index.js";
-const {
-    coerceToBase64Url,
-    coerceToArrayBuffer
-} = WebAuthnHelpers.utils;
+/* globals chai, assert, fido2Helpers, GlobalWebAuthnClasses */
 
 describe("helpers", function() {
+    const {
+        WebAuthnHelpers
+    } = GlobalWebAuthnClasses;
+
+    const {
+        coerceToBase64Url,
+        coerceToArrayBuffer
+    } = WebAuthnHelpers.utils;
+
     describe("defaultRoutes", function() {
         var defaultRoutes = WebAuthnHelpers.defaultRoutes;
         it("is object", function() {
