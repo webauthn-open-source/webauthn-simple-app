@@ -27,7 +27,8 @@ export class GetOptions extends ServerResponse {
             "rpId",
             "allowCredentials",
             "userVerification",
-            "extensions"
+            "extensions",
+            "rawChallenge"
         ]);
     }
 
@@ -40,10 +41,15 @@ export class GetOptions extends ServerResponse {
         if (this.allowCredentials) checkCredentialDescriptorList(this.allowCredentials);
         if (this.userVerification) checkUserVerification(this.userVerification);
         checkOptionalType(this, "extensions", Object);
+        checkOptionalFormat(this, "rawChallenge", "base64url");
     }
 
     decodeBinaryProperties() {
         this.challenge = coerceToArrayBuffer(this.challenge, "challenge");
+        if (this.rawChallenge) {
+            this.rawChallenge = coerceToArrayBuffer(this.rawChallenge, "rawChallenge");
+        }
+
         if (this.allowCredentials) {
             this.allowCredentials.forEach((cred) => {
                 cred.id = coerceToArrayBuffer(cred.id, "cred.id");
@@ -53,6 +59,10 @@ export class GetOptions extends ServerResponse {
 
     encodeBinaryProperties() {
         this.challenge = coerceToBase64Url(this.challenge, "challenge");
+        if (this.rawChallenge) {
+            this.rawChallenge = coerceToBase64Url(this.rawChallenge, "rawChallenge");
+        }
+
         if (this.allowCredentials) {
             this.allowCredentials.forEach((cred, idx) => {
                 cred.id = coerceToBase64Url(cred.id, "allowCredentials[" + idx + "].id");

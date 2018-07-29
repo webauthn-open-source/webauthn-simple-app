@@ -351,6 +351,38 @@ describe("CreateOptions", function() {
                 msg.validate();
             }, Error, "expected 'extensions' to be 'Object', got: hi");
         });
+
+        it("passes with rawChallenge", function() {
+            testArgs.rawChallenge = "AAAA==";
+            var msg = CreateOptions.from(testArgs);
+
+            msg.validate();
+        });
+
+        it("passes with undefined rawChallenge", function() {
+            testArgs.rawChallenge = undefined;
+            var msg = CreateOptions.from(testArgs);
+
+            msg.validate();
+        });
+
+        it("throws on non-string rawChallenge", function() {
+            testArgs.rawChallenge = 42;
+            var msg = CreateOptions.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'rawChallenge' to be 'string', got: number");
+        });
+
+        it("throws on non-base64url rawChallenge", function() {
+            testArgs.rawChallenge = "!!!";
+            var msg = CreateOptions.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'rawChallenge' to be base64url format, got: !!!");
+        });
     });
 
     describe("decodeBinaryProperties", function() {
@@ -365,6 +397,14 @@ describe("CreateOptions", function() {
             msg.excludeCredentials.forEach((cred) => {
                 assert.instanceOf(cred.id, ArrayBuffer);
             });
+        });
+
+        it("decodes rawChallenge", function() {
+            var msg = CreateOptions.from(fido2Helpers.server.completeCreationOptions);
+            msg.rawChallenge = "AAAA==";
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.rawChallenge, ArrayBuffer);
+            assert.strictEqual(msg.rawChallenge.byteLength, 3);
         });
     });
 
@@ -385,6 +425,14 @@ describe("CreateOptions", function() {
             msg.excludeCredentials.forEach((cred) => {
                 assert.isString(cred.id);
             });
+        });
+
+        it("encodes rawChallenge", function() {
+            var msg = CreateOptions.from(fido2Helpers.server.completeCreationOptions);
+            msg.decodeBinaryProperties();
+            msg.rawChallenge = new Uint8Array([0x00, 0x00, 0x00]).buffer;
+            msg.encodeBinaryProperties();
+            assert.strictEqual(msg.rawChallenge, "AAAA");
         });
     });
 

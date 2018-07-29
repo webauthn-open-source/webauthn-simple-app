@@ -218,6 +218,38 @@ describe("GetOptions", function() {
                 msg.validate();
             }, Error, "expected 'extensions' to be 'Object', got: foo");
         });
+
+        it("passes with rawChallenge", function() {
+            testArgs.rawChallenge = "AAAA==";
+            var msg = GetOptions.from(testArgs);
+
+            msg.validate();
+        });
+
+        it("passes with undefined rawChallenge", function() {
+            testArgs.rawChallenge = undefined;
+            var msg = GetOptions.from(testArgs);
+
+            msg.validate();
+        });
+
+        it("throws on non-string rawChallenge", function() {
+            testArgs.rawChallenge = 42;
+            var msg = GetOptions.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'rawChallenge' to be 'string', got: number");
+        });
+
+        it("throws on non-base64url rawChallenge", function() {
+            testArgs.rawChallenge = "!!!";
+            var msg = GetOptions.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'rawChallenge' to be base64url format, got: !!!");
+        });
     });
 
     describe("decodeBinaryProperties", function() {
@@ -232,6 +264,14 @@ describe("GetOptions", function() {
             msg.allowCredentials.forEach((cred) => {
                 assert.instanceOf(cred.id, ArrayBuffer);
             });
+        });
+
+        it("decodes rawChallenge", function() {
+            var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
+            msg.rawChallenge = "AAAA==";
+            msg.decodeBinaryProperties();
+            assert.instanceOf(msg.rawChallenge, ArrayBuffer);
+            assert.strictEqual(msg.rawChallenge.byteLength, 3);
         });
     });
 
@@ -248,6 +288,14 @@ describe("GetOptions", function() {
             msg.allowCredentials.forEach((cred) => {
                 assert.isString(cred.id);
             });
+        });
+
+        it("encodes rawChallenge", function() {
+            var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
+            msg.decodeBinaryProperties();
+            msg.rawChallenge = new Uint8Array([0x00, 0x00, 0x00]).buffer;
+            msg.encodeBinaryProperties();
+            assert.strictEqual(msg.rawChallenge, "AAAA");
         });
     });
 

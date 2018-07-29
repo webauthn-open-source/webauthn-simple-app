@@ -73,6 +73,38 @@ describe("GetOptionsRequest", function() {
                 msg.validate();
             }, Error, "expected 'displayName' to be non-empty string");
         });
+
+        it("passes with extraData", function() {
+            testArgs.extraData = "AAAA==";
+            var msg = GetOptionsRequest.from(testArgs);
+
+            msg.validate();
+        });
+
+        it("passes with undefined extraData", function() {
+            testArgs.extraData = undefined;
+            var msg = GetOptionsRequest.from(testArgs);
+
+            msg.validate();
+        });
+
+        it("throws on non-string extraData", function() {
+            testArgs.extraData = 42;
+            var msg = GetOptionsRequest.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'extraData' to be 'string', got: number");
+        });
+
+        it("throws on non-base64url extraData", function() {
+            testArgs.extraData = "!!!";
+            var msg = GetOptionsRequest.from(testArgs);
+
+            assert.throws(() => {
+                msg.validate();
+            }, Error, "expected 'extraData' to be base64url format, got: !!!");
+        });
     });
 
     describe("decodeBinaryProperties", function() {

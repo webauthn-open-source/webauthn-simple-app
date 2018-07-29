@@ -1,7 +1,8 @@
 import {
     checkAttestation,
     checkAuthenticatorSelection,
-    checkFormat
+    checkFormat,
+    checkOptionalFormat
 } from "../lib/input-validation.js";
 
 import { Msg } from "./Msg.js";
@@ -19,7 +20,8 @@ export class CreateOptionsRequest extends Msg {
             "username",
             "displayName",
             "authenticatorSelection",
-            "attestation"
+            "attestation",
+            "extraData"
         ];
     }
 
@@ -28,6 +30,7 @@ export class CreateOptionsRequest extends Msg {
         checkFormat(this, "displayName", "non-empty-string");
         checkAuthenticatorSelection(this);
         checkAttestation(this);
+        checkOptionalFormat(this, "extraData", "base64url");
     }
 
     decodeBinaryProperties() {}

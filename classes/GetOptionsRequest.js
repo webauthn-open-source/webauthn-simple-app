@@ -1,5 +1,8 @@
+import {
+    checkFormat,
+    checkOptionalFormat
+} from "../lib/input-validation.js";
 import { Msg } from "./Msg.js";
-import { checkFormat } from "../lib/input-validation.js";
 
 /**
  * A {@link Msg} object that the browser sends to the server to request
@@ -12,13 +15,15 @@ export class GetOptionsRequest extends Msg {
 
         this.propList = [
             "username",
-            "displayName"
+            "displayName",
+            "extraData"
         ];
     }
 
     validate() {
         checkFormat(this, "username", "non-empty-string");
         checkFormat(this, "displayName", "non-empty-string");
+        checkOptionalFormat(this, "extraData", "base64url");
     }
 
     decodeBinaryProperties() {}

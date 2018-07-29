@@ -33,7 +33,8 @@ export class CreateOptions extends ServerResponse {
             "excludeCredentials",
             "authenticatorSelection",
             "attestation",
-            "extensions"
+            "extensions",
+            "rawChallenge"
         ]);
     }
 
@@ -66,6 +67,7 @@ export class CreateOptions extends ServerResponse {
         checkAttestation(this);
 
         checkOptionalType(this, "extensions", Object);
+        checkOptionalFormat(this, "rawChallenge", "base64url");
     }
 
     decodeBinaryProperties() {
@@ -74,6 +76,9 @@ export class CreateOptions extends ServerResponse {
         }
 
         this.challenge = coerceToArrayBuffer(this.challenge, "challenge");
+        if (this.rawChallenge) {
+            this.rawChallenge = coerceToArrayBuffer(this.rawChallenge, "rawChallenge");
+        }
 
         if (this.excludeCredentials) {
             this.excludeCredentials.forEach((cred, idx) => {
@@ -88,6 +93,9 @@ export class CreateOptions extends ServerResponse {
         }
 
         this.challenge = coerceToBase64Url(this.challenge, "challenge");
+        if (this.rawChallenge) {
+            this.rawChallenge = coerceToBase64Url(this.rawChallenge, "rawChallenge");
+        }
 
         if (this.excludeCredentials) {
             this.excludeCredentials.forEach((cred, idx) => {
