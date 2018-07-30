@@ -1,6 +1,6 @@
 {
   "name": "webauthn-simple-app",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "webauthn-simple-app",
   "main": "dist/webauthn-simple-app.cjs.js",
   "module": "dist/webauthn-simple-app.esm.js",
