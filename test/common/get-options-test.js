@@ -220,7 +220,7 @@ describe("GetOptions", function() {
         });
 
         it("passes with rawChallenge", function() {
-            testArgs.rawChallenge = "AAAA==";
+            testArgs.rawChallenge = "AAAA";
             var msg = GetOptions.from(testArgs);
 
             msg.validate();
@@ -268,7 +268,7 @@ describe("GetOptions", function() {
 
         it("decodes rawChallenge", function() {
             var msg = GetOptions.from(fido2Helpers.server.completeGetOptions);
-            msg.rawChallenge = "AAAA==";
+            msg.rawChallenge = "AAAA";
             msg.decodeBinaryProperties();
             assert.instanceOf(msg.rawChallenge, ArrayBuffer);
             assert.strictEqual(msg.rawChallenge.byteLength, 3);
