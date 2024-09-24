@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/apowers313/webauthn-simple-app#readme",
   "dependencies": {
-    "rollup": "^0.61.2"
+    "rollup": "^3.29.5"
   },
   "devDependencies": {
     "chai": "^3.5.0",
